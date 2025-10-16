@@ -1,5 +1,5 @@
 // src/pages/barang/BarangFormPage.tsx
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import BarangForm from "../../components/form/BarangForm";
 import TambahStokForm from "../../components/form/TambahStokForm";

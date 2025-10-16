@@ -9,8 +9,6 @@ import {
 import { useNavigate } from "react-router";
 import ActionButton from "../ui/ActionButton";
 import ConfirmModal from "../ui/ConfirmModal";
-import { TrashBinIcon } from "../../icons";
-import { TrashIcon } from "@heroicons/react/24/outline";
 
 function DeviceTableSkeleton() {
   return (

@@ -69,7 +69,7 @@ function UserRegistrationSkeleton() {
 export default function UserRegistrationTable({
   data,
   loading,
-  onDelete,
+  // onDelete,
   onUpdated,
 }: UserRegistrationTableProps) {
   const navigate = useNavigate();
@@ -84,11 +84,11 @@ export default function UserRegistrationTable({
   const [loadingProgress, setLoadingProgress] = useState(false);
 
   // ============ DELETE USER ============
-  const handleDelete = (id: number) => {
-    if (confirm("Yakin ingin menghapus user ini?")) {
-      onDelete?.(id);
-    }
-  };
+  // const handleDelete = (id: number) => {
+  //   if (confirm("Yakin ingin menghapus user ini?")) {
+  //     onDelete?.(id);
+  //   }
+  // };
 
   // ============ GET PROGRESS DARI SUPABASE ============
   const handleOpenProgress = async (user: UserRegistration) => {

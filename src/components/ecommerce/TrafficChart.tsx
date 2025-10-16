@@ -221,8 +221,8 @@ export default function TrafficChart() {
             const timesMs = metrics.map((m) => localTimestamp(m.createdat));
             const rxData = metrics.map((m) => m.rxbytes);
             const txData = metrics.map((m) => m.txbytes);
-            const lastRx = rxData[rxData.length - 1] ?? 0;
-            const lastTx = txData[txData.length - 1] ?? 0;
+            // const lastRx = rxData[rxData.length - 1] ?? 0;
+            // const lastTx = txData[txData.length - 1] ?? 0;
 
             const options: ApexOptions = {
               ...baseOptions,

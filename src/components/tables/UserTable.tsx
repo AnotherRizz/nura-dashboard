@@ -47,17 +47,17 @@ function UserTableSkeleton() {
 
 export default function UserTable({
   data,
-  onDelete,
+  // onDelete,
   loading,
   onToggle,
 }: UserTableProps) {
   const navigate = useNavigate();
 
-  const handleDelete = (id: string) => {
-    if (confirm("Yakin ingin menghapus user ini?")) {
-      onDelete?.(id);
-    }
-  };
+  // const handleDelete = (id: string) => {
+  //   if (confirm("Yakin ingin menghapus user ini?")) {
+  //     onDelete?.(id);
+  //   }
+  // };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">

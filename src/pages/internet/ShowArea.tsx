@@ -49,41 +49,59 @@ export default function ShowArea() {
   const [loading, setLoading] = useState(true);
 
   const fetchArea = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("Area")
-        .select(
-          `
+   try {
+  const { data, error } = await supabase
+    .from("Area")
+    .select(`
+      id,
+      nama_area,
+      latitude,
+      longitude,
+      radius,
+      PaketArea (
+        id,
+        paketId,
+        areaId,
+        paket:Paket (
           id,
-          nama_area,
-          latitude,
-          longitude,
-          radius,
-          PaketArea (
-            id,
-            paketId,
-            areaId,
-            paket:Paket (
-              id,
-              nama_paket,
-              deskripsi,
-              speed,
-              harga,
-              fitur
-            )
-          )
-        `
+          nama_paket,
+          deskripsi,
+          speed,
+          harga,
+          fitur
         )
-        .eq("id", id)
-        .single();
+      )
+    `)
+    .eq("id", id)
+    .single();
 
-      if (error) throw error;
-      setArea(data as Area);
-    } catch (err) {
-      console.error("Gagal mengambil detail area", err);
-    } finally {
-      setLoading(false);
-    }
+  if (error) throw error;
+
+  // ✅ Normalisasi data agar sesuai tipe 'Area'
+  const normalizedArea: Area = {
+    id: data.id,
+    nama_area: data.nama_area,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    radius: data.radius ?? null,
+    PaketArea:
+      Array.isArray(data.PaketArea) && data.PaketArea.length > 0
+        ? data.PaketArea.map((pa: any) => ({
+            id: pa.id,
+            paketId: pa.paketId,
+            areaId: pa.areaId,
+            paket: Array.isArray(pa.paket) ? pa.paket[0] : pa.paket,
+          }))
+        : [], // kalau kosong, kembalikan array kosong
+  };
+
+  setArea(normalizedArea);
+} catch (err) {
+  console.error("❌ Gagal mengambil detail area:", err);
+} finally {
+  setLoading(false);
+}
+
   };
 
   useEffect(() => {
@@ -116,10 +134,11 @@ export default function ShowArea() {
               width: "100%",
               borderRadius: "10px",
               zIndex: 0,
-            }}
-          >
+            }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={[area.latitude, area.longitude]} icon={markerIcon}>
+            <Marker
+              position={[area.latitude, area.longitude]}
+              icon={markerIcon}>
               <Popup>{area.nama_area}</Popup>
             </Marker>
             {area.radius && (
@@ -190,8 +209,7 @@ export default function ShowArea() {
               {area.PaketArea.map((pa) => (
                 <div
                   key={pa.id}
-                  className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0"
-                >
+                  className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {pa.paket.nama_paket}
                   </h3>
@@ -218,8 +236,7 @@ export default function ShowArea() {
         <div className="mt-10 flex justify-end gap-2">
           <Button
             className="rounded-xl !bg-red-500 text-white"
-            onClick={() => navigate("/area")}
-          >
+            onClick={() => navigate("/area")}>
             Kembali
           </Button>
         </div>

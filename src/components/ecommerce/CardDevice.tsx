@@ -5,7 +5,6 @@ import {
   ArrowPathIcon,
   ArrowUpIcon,
   CircleStackIcon,
-  ClockIcon,
   CpuChipIcon,
 } from "@heroicons/react/24/outline";
 
@@ -30,29 +29,29 @@ const formatSpeed = (bps?: number | null) => {
 };
 
 // 🕒 Ubah uptime "10w5d14h52m24s" jadi "75 hari 14 jam 52 menit 24 detik"
-const formatUptime = (uptime?: string | null) => {
-  if (!uptime) return "-";
+// const formatUptime = (uptime?: string | null) => {
+//   if (!uptime) return "-";
 
-  const regex = /(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/;
-  const match = uptime.match(regex);
-  if (!match) return uptime;
+//   const regex = /(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/;
+//   const match = uptime.match(regex);
+//   if (!match) return uptime;
 
-  const weeks = parseInt(match[1]) || 0;
-  const days = parseInt(match[2]) || 0;
-  const hours = parseInt(match[3]) || 0;
-  const minutes = parseInt(match[4]) || 0;
-  const seconds = parseInt(match[5]) || 0;
+//   const weeks = parseInt(match[1]) || 0;
+//   const days = parseInt(match[2]) || 0;
+//   const hours = parseInt(match[3]) || 0;
+//   const minutes = parseInt(match[4]) || 0;
+//   const seconds = parseInt(match[5]) || 0;
 
-  const totalDays = weeks * 7 + days;
+//   const totalDays = weeks * 7 + days;
 
-  const parts = [];
-  if (totalDays) parts.push(`${totalDays} hari`);
-  if (hours) parts.push(`${hours} jam`);
-  if (minutes) parts.push(`${minutes} menit`);
-  if (!totalDays && !hours && seconds) parts.push(`${seconds} detik`);
+//   const parts = [];
+//   if (totalDays) parts.push(`${totalDays} hari`);
+//   if (hours) parts.push(`${hours} jam`);
+//   if (minutes) parts.push(`${minutes} menit`);
+//   if (!totalDays && !hours && seconds) parts.push(`${seconds} detik`);
 
-  return parts.join(" ");
-};
+//   return parts.join(" ");
+// };
 
 const CardDevice: React.FC<Props> = ({ device }) => {
   const isConnected = device.status === "terhubung";

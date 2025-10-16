@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import Button from "../../components/ui/button/Button";
-import { ChatIcon, BoltIcon } from "../../icons";
+import {  BoltIcon } from "../../icons";
 import { supabase } from "../../services/supabaseClient";
 import { MapIcon } from "@heroicons/react/24/outline";
 
@@ -34,32 +34,54 @@ export default function ShowPaket() {
   const [loading, setLoading] = useState(true);
 
   const fetchPaket = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("Paket")
-        .select(
-          `
+   try {
+  const { data, error } = await supabase
+    .from("Paket")
+    .select(`
+      id,
+      nama_paket,
+      deskripsi,
+      speed,
+      harga,
+      fitur,
+      PaketArea (
+        area:Area (
           id,
-          nama_paket,
-          deskripsi,
-          speed,
-          harga,
-          fitur,
-          PaketArea(
-            area:Area(*)
-          )
-        `
+          nama_area,
+          latitude,
+          longitude,
+          radius
         )
-        .eq("id", id)
-        .single();
+      )
+    `)
+    .eq("id", id)
+    .single();
 
-      if (error) throw error;
-      setPaket(data as Paket);
-    } catch (err) {
-      console.error("Gagal mengambil detail paket", err);
-    } finally {
-      setLoading(false);
-    }
+  if (error) throw error;
+
+  // ✅ Normalisasi hasil Supabase agar sesuai tipe 'Paket'
+  const normalizedPaket: Paket = {
+    id: data.id,
+    nama_paket: data.nama_paket,
+    deskripsi: data.deskripsi ?? "",
+    speed: data.speed ?? "",
+    harga: data.harga ?? 0,
+    fitur: Array.isArray(data.fitur) ? data.fitur : [],
+    PaketArea:
+      Array.isArray(data.PaketArea) && data.PaketArea.length > 0
+        ? data.PaketArea.map((pa: any) => ({
+            area: Array.isArray(pa.area) ? pa.area[0] : pa.area,
+          }))
+        : [],
+  };
+
+  setPaket(normalizedPaket);
+} catch (err) {
+  console.error("❌ Gagal mengambil detail paket:", err);
+} finally {
+  setLoading(false);
+}
+
   };
 
   useEffect(() => {
