@@ -190,11 +190,11 @@ export default function ShowDevice() {
           <CpuStatCard cpu={device.lastCpu ?? 0} />
 
           <div className="mt-6 grid gap-4">
-            <InfoRow label="Last Check" value={formatLastCheck(device.lastCheck)} color="indigo" />
+            <InfoRow label="Last Check" value={formatLastCheck(device.lastCheck)} color="red" />
             <InfoRow label="Uptime" value={formatUptime(device.lastUptime)} color="green" />
-            <InfoRow label="CPU" value={formatPercent(device.lastCpu)} color="pink" percent={device.lastCpu} />
+            <InfoRow label="CPU" value={formatPercent(device.lastCpu)} color="rose" percent={device.lastCpu} />
             <InfoRow label="Memory" value={formatPercent(device.lastMem)} color="blue" percent={device.lastMem} />
-            <InfoRow label="RX" value={formatSpeed(device.lastRx)} color="teal" />
+            <InfoRow label="RX" value={formatSpeed(device.lastRx)} color="amber" />
             <InfoRow label="TX" value={formatSpeed(device.lastTx)} color="orange" />
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function ShowDevice() {
 }
 
 // --- Small Components ---
-function InfoItem({ label, value }: { label: string; value: string }) {
+function InfoItem({ label, value }: { label: any; value: string }) {
   return (
     <div className="flex justify-between">
       <span className="font-medium text-gray-600 dark:text-gray-400">{label}:</span>

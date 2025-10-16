@@ -74,7 +74,11 @@ export default function ShowUserRegistration() {
           .single();
 
         if (error) throw error;
-        setUser(data);
+       setUser({
+  ...data,
+  paket: Array.isArray(data.paket) ? data.paket[0] : data.paket,
+});
+
       } catch (err: any) {
         console.error("Error fetching user:", err.message);
       } finally {

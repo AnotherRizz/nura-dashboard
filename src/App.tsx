@@ -36,6 +36,7 @@ import UpdateProgressPage from "./pages/users/UpdateProgressPage";
 import UserProfiles from "./pages/UserProfiles";
 import Monitoring from "./pages/internet/Monitoring";
 import Summary from "./pages/internet/Summary";
+import Blank from "./pages/Blank";
 
 export default function App() {
   return (
@@ -74,7 +75,7 @@ export default function App() {
           <Route path="/device/add" element={<DeviceFormPage/>} />
           <Route path="/device/edit/:id" element={<DeviceFormPage/>} />
           <Route path="/monitoring" element={<Monitoring/>} />
-          <Route path="/summary" element={<Summary/>} />
+          <Route path="/summary" element={<Blank/>} />
           <Route path="/area/add" element={<AreaFormPage />} />
           <Route path="/area/:id" element={<ShowArea />} />
           <Route path="/area/edit/:id" element={<AreaFormPage />} />

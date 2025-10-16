@@ -13,10 +13,10 @@ interface Metric {
   createdat: string;
 }
 
-interface DeviceRow {
-  id: number;
-  nama: string | null;
-}
+// interface DeviceRow {
+//   id: number;
+//   nama: string | null;
+// }
 
 function formatBytes(bytes: number): string {
   if (!bytes && bytes !== 0) return "-";
@@ -52,40 +52,46 @@ export default function TrafficChart() {
 
   // === Ambil data sesuai range ===
   const fetchMetrics = async () => {
-    const now = new Date();
-    let startTime: Date;
+  const now = new Date();
+  let startTime: Date;
 
-    switch (range) {
-      case "1h":
-        startTime = new Date(now.getTime() - 60 * 60 * 1000);
-        break;
-      case "1d":
-        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      default:
-        startTime = new Date(now.getTime() - 10 * 60 * 1000);
-        break;
-    }
+  switch (range) {
+    case "1h":
+      startTime = new Date(now.getTime() - 60 * 60 * 1000);
+      break;
+    case "1d":
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    default:
+      startTime = new Date(now.getTime() - 10 * 60 * 1000);
+      break;
+  }
 
-    const { data, error } = await supabase
-      .from("DeviceMetricRaw")
-      .select("id, deviceid, rxbytes, txbytes, createdat")
-      .gte("createdat", startTime.toISOString())
-      .order("createdat", { ascending: true });
+  const { data, error, count } = await supabase
+    .from("DeviceMetricRaw")
+    .select("id, deviceid, rxbytes, txbytes, createdat", { count: "exact" })
+    .gte("createdat", startTime.toISOString())
+    .order("createdat", { ascending: true })
+    .limit(2000);
 
-    if (error) {
-      console.error("Error fetching metrics:", error);
-      return;
-    }
+  if (error) {
+    console.error("Error fetching metrics:", error);
+    return;
+  }
 
-    const grouped: Record<string, Metric[]> = {};
-    data?.forEach((row) => {
-      const key = String(row.deviceid);
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(row);
-    });
-    setDataByDevice(grouped);
-  };
+  if ((count ?? 0) > 2000) {
+    console.warn("⚠️ Data terlalu banyak, hanya menampilkan 2000 titik terakhir");
+  }
+
+  const grouped: Record<string, Metric[]> = {};
+  data?.forEach((row) => {
+    const key = String(row.deviceid);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(row);
+  });
+  setDataByDevice(grouped);
+};
+
 
   useEffect(() => {
     let mounted = true;
@@ -242,12 +248,12 @@ export default function TrafficChart() {
                       Trafik RX / TX ({range === "10m" ? "10 menit" : range === "1h" ? "1 jam" : "1 hari"} terakhir)
                     </p>
                   </div>
-                  <div className="text-right">
+                  {/* <div className="text-right">
                     <p className="text-xs text-gray-400">Current RX / TX</p>
                     <p className="font-semibold text-gray-800 dark:text-brand-700 text-sm">
                       {formatBytes(lastRx)} / {formatBytes(lastTx)}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
 
                 <Chart options={options} series={series} type="area" height={300} />
