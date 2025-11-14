@@ -25,13 +25,23 @@ export default function DeviceIndex() {
       const to = from + limit - 1;
 
       let query = supabase
-        .from("Device") // nama tabel di Supabase, sesuaikan dengan tabel kamu
-        .select("*", { count: "exact" })
+        .from("Device")
+        .select(
+          `
+    id,
+    nama,
+    no_sn,
+    status,
+    createdAt,
+    area:Area ( nama_area )
+  `,
+          { count: "exact" }
+        )
         .range(from, to)
         .order("id", { ascending: false });
 
       if (keyword) {
-        query = query.ilike("nama_device", `%${keyword}%`); // sesuaikan kolom pencariannya
+        query = query.ilike("nama_device", `%${keyword}%`);
       }
 
       const { data, count, error } = await query;
@@ -82,8 +92,7 @@ export default function DeviceIndex() {
                       height="20"
                       viewBox="0 0 20 20"
                       fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
+                      xmlns="http://www.w3.org/2000/svg">
                       <path
                         fillRule="evenodd"
                         clipRule="evenodd"
@@ -104,9 +113,8 @@ export default function DeviceIndex() {
 
             <Button
               size="sm"
-               className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl "
-              onClick={() => navigate("/device/add")}
-            >
+              className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl "
+              onClick={() => navigate("/device/add")}>
               Tambah Device
             </Button>
           </div>

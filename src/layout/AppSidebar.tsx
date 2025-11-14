@@ -58,7 +58,15 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
     },
     { icon: <ServerStackIcon />, name: "Devices", path: "/device" },
     { icon: <AdjustmentsHorizontalIcon />, name: "Monitoring", path: "/monitoring" },
-    { icon: <DocumentTextIcon />, name: "Summary", path: "/summary" },
+      {
+      name: "Summary",
+      icon:  <DocumentTextIcon />,
+      subItems: [
+        { name: "Log Device", path: "/log", pro: true },
+        { name: "Summary", path: "/summary" },
+        { name: "Gangguan", path: "/gangguan" },
+      ],
+    },
     { icon: <MapIcon />, name: "Side Area", path: "/area" },
   ];
 
@@ -72,9 +80,6 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
     { icon: <Cog6ToothIcon />, name: "Settings", path: "/profile" },
   ];
 
-  // ==============================
-  // 🔹 FILTER MENU BERDASARKAN ROLE
-  // ==============================
   let filteredNavItems = navItems;
   let filteredGeneralItems = generalItems;
   let filteredOthersItems = othersItems;

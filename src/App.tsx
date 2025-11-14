@@ -30,12 +30,15 @@ import ShowUser from "./pages/users/ShowUser";
 import DeviceIndex from "./pages/internet/DeviceIndex";
 import DeviceFormPage from "./pages/internet/DeviceFormPage";
 import ShowDevice from "./pages/internet/ShowDevice";
-import LogDevice from "./pages/internet/LogDevice";
+import TroubleDevice from "./pages/internet/TroubleDevice";
 import UserRegistrationFormPage from "./pages/users/UserRegistrationFormPage";
 import UpdateProgressPage from "./pages/users/UpdateProgressPage";
 import UserProfiles from "./pages/UserProfiles";
 import Monitoring from "./pages/internet/Monitoring";
 import Summary from "./pages/internet/Summary";
+import "flatpickr/dist/themes/dark.css";
+import LogPage from "./pages/summary/Log";
+// import GuidePage from "./pages/guide/guidePage";
 
 export default function App() {
   return (
@@ -44,16 +47,15 @@ export default function App() {
       <Toaster position="bottom-right" reverseOrder={false} />
 
       <Routes>
-        {/* Protected Dashboard */}
         <Route
           element={
             <ProtectedRoute>
               <AppLayout />
             </ProtectedRoute>
-          }
-        >
+          }>
           <Route index path="/" element={<Home />} />
-          <Route index path="/profile" element={<UserProfiles/>} />
+          <Route index path="/profile" element={<UserProfiles />} />
+          {/* <Route index path="/guide" element={<GuidePage />} /> */}
 
           {/* Barang Page */}
           <Route path="/barang" element={<BarangIndex />} />
@@ -68,29 +70,33 @@ export default function App() {
           <Route path="/paket/:id" element={<ShowPaket />} />
           <Route path="/paket/edit/:id" element={<PaketFormPage />} />
           <Route path="/area" element={<AreaIndex />} />
-          <Route path="/device" element={<DeviceIndex/>} />
-          <Route path="/log-device" element={<LogDevice/>} />
-          <Route path="/device/:id" element={<ShowDevice/>} />
-          <Route path="/device/add" element={<DeviceFormPage/>} />
-          <Route path="/device/edit/:id" element={<DeviceFormPage/>} />
-          <Route path="/monitoring" element={<Monitoring/>} />
-          <Route path="/summary" element={<Summary/>} />
+          <Route path="/device" element={<DeviceIndex />} />
+          <Route path="/gangguan" element={<TroubleDevice />} />
+          <Route path="/log" element={<LogPage />} />
+          <Route path="/device/:id" element={<ShowDevice />} />
+          <Route path="/device/add" element={<DeviceFormPage />} />
+          <Route path="/device/edit/:id" element={<DeviceFormPage />} />
+          <Route path="/monitoring" element={<Monitoring />} />
+          <Route path="/summary" element={<Summary />} />
           <Route path="/area/add" element={<AreaFormPage />} />
           <Route path="/area/:id" element={<ShowArea />} />
           <Route path="/area/edit/:id" element={<AreaFormPage />} />
           <Route path="/registrasi-user" element={<UserRegistration />} />
-          <Route path="/registrasi-user/add" element={<UserRegistrationFormPage/>} />
-          <Route path="/registrasi-user/:id" element={<ShowUserRegistration/>} />
-          <Route path="/registrasi-user/:id/progress" element={<UpdateProgressPage/>} />
+          <Route
+            path="/registrasi-user/add"
+            element={<UserRegistrationFormPage />}
+          />
+          <Route
+            path="/registrasi-user/:id"
+            element={<ShowUserRegistration />}
+          />
+          <Route
+            path="/registrasi-user/:id/progress"
+            element={<UpdateProgressPage />}
+          />
 
-
-
-
-          <Route path="/users" element={<UserList/>} />
-          <Route path="/users/:id" element={<ShowUser/>} />
-
-
-
+          <Route path="/users" element={<UserList />} />
+          <Route path="/users/:id" element={<ShowUser />} />
 
           {/* Supplier Page */}
           <Route path="/supplier" element={<SupplierIndex />} />
@@ -110,5 +116,5 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
-  )
+  );
 }

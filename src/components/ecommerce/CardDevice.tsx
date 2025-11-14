@@ -1,5 +1,5 @@
 import React from "react";
-import type { Device } from "../../pages/internet/Monitoring";
+import type { Device, InterfaceData } from "../../pages/internet/Monitoring";
 import {
   ArrowDownIcon,
   ArrowPathIcon,
@@ -10,6 +10,7 @@ import {
 
 interface Props {
   device: Device;
+  iface: InterfaceData;
 }
 
 const formatPercent = (v?: number | null) =>
@@ -28,32 +29,7 @@ const formatSpeed = (bps?: number | null) => {
   return `${num.toFixed(0)} bps`;
 };
 
-// 🕒 Ubah uptime "10w5d14h52m24s" jadi "75 hari 14 jam 52 menit 24 detik"
-// const formatUptime = (uptime?: string | null) => {
-//   if (!uptime) return "-";
-
-//   const regex = /(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/;
-//   const match = uptime.match(regex);
-//   if (!match) return uptime;
-
-//   const weeks = parseInt(match[1]) || 0;
-//   const days = parseInt(match[2]) || 0;
-//   const hours = parseInt(match[3]) || 0;
-//   const minutes = parseInt(match[4]) || 0;
-//   const seconds = parseInt(match[5]) || 0;
-
-//   const totalDays = weeks * 7 + days;
-
-//   const parts = [];
-//   if (totalDays) parts.push(`${totalDays} hari`);
-//   if (hours) parts.push(`${hours} jam`);
-//   if (minutes) parts.push(`${minutes} menit`);
-//   if (!totalDays && !hours && seconds) parts.push(`${seconds} detik`);
-
-//   return parts.join(" ");
-// };
-
-const CardDevice: React.FC<Props> = ({ device }) => {
+const CardDevice: React.FC<Props> = ({ device, iface }) => {
   const isConnected = device.status === "terhubung";
 
   return (
@@ -67,10 +43,13 @@ const CardDevice: React.FC<Props> = ({ device }) => {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h4 className="text-lg font-semibold text-gray-50">{device.nama}</h4>
+          <h4 className="text-lg font-semibold text-gray-50">{device.nama} <span className="text-gray-400 text-sm">({iface.iface})</span></h4>
           <p className="text-xs text-gray-300">
             {device.ip}
             {device.portApi ? `:${device.portApi}` : ""}
+          </p>
+          <p className="text-xs text-gray-400 mt-1 italic">
+            Interface: <span className="font-semibold">{iface.iface}</span>
           </p>
         </div>
 
@@ -81,15 +60,15 @@ const CardDevice: React.FC<Props> = ({ device }) => {
               : "bg-red-200/90 text-red-800 dark:bg-red-900/40 dark:text-red-200"
           }`}
         >
-          {isConnected ? "Terhubung" : "Tidak Terhubung"}
+          {iface.status}
         </span>
       </div>
 
       {/* Divider */}
       <div className="my-3 border-t border-white/10"></div>
 
-      {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-100">
+      {/* CPU & Memory */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-100 mb-3">
         <div className="flex items-center gap-2">
           <CpuChipIcon className="w-5 h-5" />
           <span>CPU:</span>
@@ -101,17 +80,17 @@ const CardDevice: React.FC<Props> = ({ device }) => {
           <span>Memory:</span>
           <span className="font-medium ml-auto">{formatPercent(device.lastMem)}</span>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 mt-6">
-          <ArrowDownIcon className="text-blue-400 w-5 h-5" />
-          <span>RX:</span>
-          <span className="font-medium ml-auto">{formatSpeed(device.lastRx)}</span>
+      {/* Interface RX/TX */}
+      <div className="flex justify-between mt-3 text-sm text-gray-200">
+        <div className="flex items-center gap-1">
+          <ArrowDownIcon className="text-blue-400 w-4 h-4" />
+          <span>{formatSpeed(iface.rx)}</span>
         </div>
-
-        <div className="flex items-center gap-2 mt-6">
-          <ArrowUpIcon className="text-orange-400 w-5 h-5" />
-          <span>TX:</span>
-          <span className="font-medium ml-auto">{formatSpeed(device.lastTx)}</span>
+        <div className="flex items-center gap-1">
+          <ArrowUpIcon className="text-orange-400 w-4 h-4" />
+          <span>{formatSpeed(iface.tx)}</span>
         </div>
       </div>
 
@@ -119,7 +98,7 @@ const CardDevice: React.FC<Props> = ({ device }) => {
       <div className="mt-4 flex justify-between items-center text-xs text-gray-300">
         <div className="flex items-center gap-1">
           <ArrowPathIcon className="w-5 h-5" />
-          <span>Pembaruan terakhir:</span>
+          <span>Pembaruan:</span>
         </div>
         <span>
           {device.lastCheck

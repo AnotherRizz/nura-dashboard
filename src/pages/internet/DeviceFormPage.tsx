@@ -10,7 +10,6 @@ export default function DeviceFormPage() {
   const [initialData, setInitialData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Ambil data device berdasarkan ID
   useEffect(() => {
     const fetchDevice = async () => {
       if (!id) return;
@@ -18,10 +17,9 @@ export default function DeviceFormPage() {
       try {
         const { data, error } = await supabase
           .from("Device")
-          .select("*")
+          .select("*, DeviceInterface(id, name, type, mac, status, comment)")
           .eq("id", id)
           .single();
-
         if (error) throw error;
 
         setInitialData({
@@ -30,22 +28,21 @@ export default function DeviceFormPage() {
           ip: data.ip || "",
           portApi: data.portApi?.toString() || "8728",
           username: data.username || "",
-          password: "",
+          password: data.password || "",
           status: data.status || "nonaktif",
           areaId: data.areaId?.toString() || "",
+          interfaces: data.DeviceInterface || [],
         });
       } catch (err) {
         console.error(err);
-        toast.error("Gagal memuat data device dari Supabase");
+        toast.error("Gagal memuat data device");
       } finally {
         setLoading(false);
       }
     };
-
     fetchDevice();
   }, [id]);
 
-  // Simpan atau update data ke Supabase
   const handleSubmit = async (formData: any) => {
     try {
       const payload = {
@@ -62,6 +59,7 @@ export default function DeviceFormPage() {
 
       await toast.promise(
         (async () => {
+          let deviceId = id;
           if (id) {
             const { error } = await supabase
               .from("Device")
@@ -69,7 +67,37 @@ export default function DeviceFormPage() {
               .eq("id", id);
             if (error) throw error;
           } else {
-            const { error } = await supabase.from("Device").insert(payload);
+            const { data, error } = await supabase
+              .from("Device")
+              .insert(payload)
+              .select("id")
+              .single();
+            if (error) throw error;
+            deviceId = data.id;
+          }
+
+          // Bersihkan interface lama
+          await supabase
+            .from("DeviceInterface")
+            .delete()
+            .eq("deviceid", deviceId);
+
+          // Simpan interface baru
+          const interfacesPayload = formData.interfaces
+            .filter((e: any) => e.name.trim() !== "")
+            .map((e: any) => ({
+              deviceid: deviceId,
+              name: e.name,
+              type: e.type || "ether",
+              mac: e.mac || null,
+              status: e.status || "nonaktif",
+              comment: e.comment || null,
+            }));
+
+          if (interfacesPayload.length > 0) {
+            const { error } = await supabase
+              .from("DeviceInterface")
+              .insert(interfacesPayload);
             if (error) throw error;
           }
         })(),
@@ -85,16 +113,15 @@ export default function DeviceFormPage() {
       navigate("/device");
     } catch (err) {
       console.error(err);
-      toast.error("Terjadi kesalahan saat menyimpan device ke Supabase");
+      toast.error("Terjadi kesalahan saat menyimpan ke Supabase");
     }
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-800 dark:text-white rounded shadow-md">
-      <h2 className="text-xl font-semibold mb-4">
+    <div className="p-6 bg-white dark:bg-gray-900 dark:text-white rounded shadow-md">
+      <h2 className="text-xl text-blue-800 font-semibold mb-4">
         {id ? "Edit Device" : "Tambah Device"}
       </h2>
-
       {loading ? (
         <p className="text-gray-500 dark:text-gray-300">Memuat data...</p>
       ) : (

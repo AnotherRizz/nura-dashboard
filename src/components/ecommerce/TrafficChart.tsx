@@ -8,15 +8,11 @@ import { supabase } from "../../services/supabaseClient";
 interface Metric {
   id: number;
   deviceid: number;
+  interfaceid: number;
   rxbytes: number;
   txbytes: number;
   createdat: string;
 }
-
-// interface DeviceRow {
-//   id: number;
-//   nama: string | null;
-// }
 
 function formatBytes(bytes: number): string {
   if (!bytes && bytes !== 0) return "-";
@@ -28,94 +24,100 @@ function formatBytes(bytes: number): string {
 }
 
 function localTimestamp(createdat: string): number {
-  const utcDate = new Date(createdat);
-  return utcDate.getTime() + utcDate.getTimezoneOffset() * -60 * 1000;
+  return new Date(createdat).getTime();
 }
 
 export default function TrafficChart() {
-  const [dataByDevice, setDataByDevice] = useState<Record<string, Metric[]>>({});
-  const [deviceNames, setDeviceNames] = useState<Record<string, string>>({});
+  const [dataByIface, setDataByIface] = useState<Record<string, Metric[]>>({});
+  const [ifaceNames, setIfaceNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState<"10m" | "1h" | "1d">("1d");
+  const [range, setRange] = useState<"10m" | "1h" | "1d">("10m");
 
-  // === Ambil nama device ===
-  const fetchDeviceNames = async () => {
-    const { data, error } = await supabase.from("Device").select("id, nama");
-    if (error) {
-      console.error("Error fetching device names:", error);
-      return;
-    }
-    const mapping: Record<string, string> = {};
-    data?.forEach((r) => (mapping[String(r.id)] = r.nama || `Device ${r.id}`));
-    setDeviceNames(mapping);
+  const fetchIfaceNames = async () => {
+   const { data, error } = await supabase
+  .from("DeviceInterface")
+  .select("id, name, deviceid, Device:deviceid(nama)");
+if (error) {
+  console.error("Error fetching interface names:", error);
+  return;
+}
+
+const mapping: Record<string, string> = {};
+data?.forEach((r: any) => {
+  // pastikan Device bukan array
+  const deviceName = r.Device?.nama || `Device ${r.deviceid}`;
+  const ifaceName = r.name || "interface";
+  mapping[String(r.id)] = `${deviceName} (${ifaceName})`;
+});
+setIfaceNames(mapping);
   };
 
-  // === Ambil data sesuai range ===
+  // === Ambil data awal sesuai range ===
   const fetchMetrics = async () => {
-  const now = new Date();
-  let startTime: Date;
+    const now = new Date();
+    let startTime: Date;
 
-  switch (range) {
-    case "1h":
-      startTime = new Date(now.getTime() - 60 * 60 * 1000);
-      break;
-    case "1d":
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      break;
-    default:
-      startTime = new Date(now.getTime() - 10 * 60 * 1000);
-      break;
-  }
+    switch (range) {
+      case "1h":
+        startTime = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case "1d":
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startTime = new Date(now.getTime() - 10 * 60 * 1000);
+        break;
+    }
 
-  const { data, error, count } = await supabase
-    .from("DeviceMetricRaw")
-    .select("id, deviceid, rxbytes, txbytes, createdat", { count: "exact" })
-    .gte("createdat", startTime.toISOString())
-    .order("createdat", { ascending: true })
-    .limit(2000);
+    const limit = range === "10m" ? 300 : range === "1h" ? 1000 : 2000;
 
-  if (error) {
-    console.error("Error fetching metrics:", error);
-    return;
-  }
+    const { data, error } = await supabase
+      .from("DeviceMetricRaw")
+      .select("id, deviceid, interfaceid, rxbytes, txbytes, createdat")
+      .gte("createdat", startTime.toISOString())
+      .order("createdat", { ascending: true })
+      .limit(limit);
 
-  if ((count ?? 0) > 2000) {
-    console.warn("⚠️ Data terlalu banyak, hanya menampilkan 2000 titik terakhir");
-  }
+    if (error) {
+      console.error("Error fetching metrics:", error);
+      return;
+    }
 
-  const grouped: Record<string, Metric[]> = {};
-  data?.forEach((row) => {
-    const key = String(row.deviceid);
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(row);
-  });
-  setDataByDevice(grouped);
-};
+    const grouped: Record<string, Metric[]> = {};
+    data?.forEach((row) => {
+      const key = String(row.interfaceid);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    });
+    setDataByIface(grouped);
+  };
 
-
+  // === Main Effect ===
   useEffect(() => {
     let mounted = true;
+
     const init = async () => {
       if (!mounted) return;
       setLoading(true);
-      await fetchDeviceNames();
+      await fetchIfaceNames();
       await fetchMetrics();
       setLoading(false);
     };
     init();
 
+    // === Realtime Updates ===
     const channel = supabase
-      .channel("realtime-device-metrics")
+      .channel("realtime-interface-metrics")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "DeviceMetricRaw" },
         (payload) => {
           const newRow = payload.new as Metric;
-          setDataByDevice((prev) => {
-            const key = String(newRow.deviceid);
+          setDataByIface((prev) => {
+            const key = String(newRow.interfaceid);
             const updated = { ...prev };
             const arr = updated[key] ? [...updated[key], newRow] : [newRow];
-            updated[key] = arr;
+
             const cutoff =
               range === "10m"
                 ? 10 * 60 * 1000
@@ -123,20 +125,18 @@ export default function TrafficChart() {
                 ? 60 * 60 * 1000
                 : 24 * 60 * 60 * 1000;
             const now = Date.now();
-            updated[key] = updated[key].filter(
-              (m) => now - new Date(m.createdat).getTime() <= cutoff
-            );
+            updated[key] = arr
+              .filter((m) => now - new Date(m.createdat).getTime() <= cutoff)
+              .slice(-2000);
+
             return updated;
           });
         }
       )
       .subscribe();
 
-    const interval = setInterval(() => fetchMetrics(), 2000);
-
     return () => {
       mounted = false;
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [range]);
@@ -150,14 +150,8 @@ export default function TrafficChart() {
       fontFamily: "Outfit, sans-serif",
     },
     stroke: { curve: "smooth", width: 2.5 },
-   fill: {
-    type: "solid", // ganti dari gradient ke solid
-    opacity: 0.5,  // atur transparansi area bawah garis
-  },
-    grid: {
-      borderColor: "rgba(200,200,200,0.14)",
-      strokeDashArray: 3,
-    },
+    fill: { type: "solid", opacity: 0.5 },
+    grid: { borderColor: "rgba(200,200,200,0.14)", strokeDashArray: 3 },
     markers: { size: 0 },
     dataLabels: { enabled: false },
     legend: {
@@ -196,13 +190,12 @@ export default function TrafficChart() {
 
   return (
     <div>
-      {/* OPTION JAM SELALU ADA */}
+      {/* OPTION RANGE */}
       <div className="flex justify-end mb-4">
         <select
           value={range}
           onChange={(e) => setRange(e.target.value as any)}
-          className="border rounded-lg text-sm px-3 py-2 text-gray-700 bg-white dark:bg-gray-800/90 dark:text-white shadow-sm"
-        >
+          className="border rounded-lg text-sm px-3 py-2 text-gray-700 bg-white dark:bg-gray-800/90 dark:text-white shadow-sm">
           <option value="10m">10 Menit Terakhir</option>
           <option value="1h">1 Jam Terakhir</option>
           <option value="1d">1 Hari Terakhir</option>
@@ -211,18 +204,20 @@ export default function TrafficChart() {
 
       {/* STATUS DAN DATA */}
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Loading traffic data...</div>
-      ) : Object.keys(dataByDevice).length === 0 ? (
-        <div className="text-center py-10 text-gray-500">Tidak ada data terbaru.</div>
+        <div className="text-center py-10 text-gray-500">
+          Loading traffic data...
+        </div>
+      ) : Object.keys(dataByIface).length === 0 ? (
+        <div className="text-center py-10 text-gray-500">
+          Tidak ada data terbaru.
+        </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {Object.entries(dataByDevice).map(([deviceId, metrics]) => {
-            const nama = deviceNames[String(deviceId)] || `Device ${deviceId}`;
+          {Object.entries(dataByIface).map(([ifaceId, metrics]) => {
+            const label = ifaceNames[ifaceId] || `Interface ${ifaceId}`;
             const timesMs = metrics.map((m) => localTimestamp(m.createdat));
             const rxData = metrics.map((m) => m.rxbytes);
             const txData = metrics.map((m) => m.txbytes);
-            // const lastRx = rxData[rxData.length - 1] ?? 0;
-            // const lastTx = txData[txData.length - 1] ?? 0;
 
             const options: ApexOptions = {
               ...baseOptions,
@@ -236,27 +231,31 @@ export default function TrafficChart() {
 
             return (
               <div
-                key={deviceId}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm px-6 py-5 dark:border-gray-800 dark:bg-gradient-to-br dark:from-sky-950 dark:to-gray-950 transition hover:shadow-md"
-              >
+                key={ifaceId}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm px-6 py-5 dark:border-gray-800 dark:bg-gradient-to-br dark:from-sky-950 dark:to-gray-950 transition hover:shadow-md">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                      {deviceId} - {nama}
+                      {label}
                     </h3>
                     <p className="text-gray-500 text-sm">
-                      Trafik RX / TX ({range === "10m" ? "10 menit" : range === "1h" ? "1 jam" : "1 hari"} terakhir)
+                      Trafik RX / TX (
+                      {range === "10m"
+                        ? "10 menit"
+                        : range === "1h"
+                        ? "1 jam"
+                        : "1 hari"}{" "}
+                      terakhir)
                     </p>
                   </div>
-                  {/* <div className="text-right">
-                    <p className="text-xs text-gray-400">Current RX / TX</p>
-                    <p className="font-semibold text-gray-800 dark:text-brand-700 text-sm">
-                      {formatBytes(lastRx)} / {formatBytes(lastTx)}
-                    </p>
-                  </div> */}
                 </div>
 
-                <Chart options={options} series={series} type="area" height={300} />
+                <Chart
+                  options={options}
+                  series={series}
+                  type="area"
+                  height={300}
+                />
               </div>
             );
           })}
