@@ -10,6 +10,8 @@ import TroubleTable from "../../components/trouble/TroubleTable";
 import SidebarDetail from "../../components/trouble/SidebarDetail";
 import { format, toZonedTime } from "date-fns-tz";
 import ExportPreviewModal from "../../components/trouble/ExportPreviewModal";
+import PageMeta from "../../components/common/PageMeta";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 
 export interface Device {
   nama?: string;
@@ -54,8 +56,8 @@ export default function TroubleDevice() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<DeviceStatusLog | null>(null);
-const [showPreview, setShowPreview] = useState(false);
-const [exportType, setExportType] = useState<"csv" | "pdf" | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [exportType, setExportType] = useState<"csv" | "pdf" | null>(null);
   const itemsPerPage = 10;
 
   const fetchLogs = async () => {
@@ -146,14 +148,18 @@ const [exportType, setExportType] = useState<"csv" | "pdf" | null>(null);
 
     if (monthFilter !== "All") {
       data = data.filter((l) => {
-        const d = new Date(l.createdat.split(",")[0].split("/").reverse().join("-"));
+        const d = new Date(
+          l.createdat.split(",")[0].split("/").reverse().join("-")
+        );
         return d.getMonth() + 1 === Number(monthFilter);
       });
     }
 
     if (yearFilter !== "All") {
       data = data.filter((l) => {
-        const d = new Date(l.createdat.split(",")[0].split("/").reverse().join("-"));
+        const d = new Date(
+          l.createdat.split(",")[0].split("/").reverse().join("-")
+        );
         return d.getFullYear() === Number(yearFilter);
       });
     }
@@ -188,35 +194,44 @@ const [exportType, setExportType] = useState<"csv" | "pdf" | null>(null);
     setSearch("");
   };
   const handlePreview = (type: "csv" | "pdf") => {
-  setExportType(type);
-  setShowPreview(true);
-};
+    setExportType(type);
+    setShowPreview(true);
+  };
 
-const handleConfirmExport = () => {
-  if (exportType === "csv") exportCSV(filtered);
-  else if (exportType === "pdf") exportPDF(filtered);
-  setShowPreview(false);
-};
+  const handleConfirmExport = () => {
+    if (exportType === "csv") exportCSV(filtered);
+    else if (exportType === "pdf") exportPDF(filtered);
+    setShowPreview(false);
+  };
 
   const total = logs.length;
   const totalOffline = logs.filter((l) => l.status === "offline").length;
   const totalSolved = logs.filter((l) => l.status === "solved").length;
 
   return (
+    <>
+     <PageMeta
+        title="Trouble Device"
+        description="Ringkasan performa perangkat"
+      />
+      <PageBreadcrumb pageTitle="Device Trouble" />
     <div className="relative p-6 bg-white dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 transition-all">
       <AnimatePresence>
-  {selectedLog && (
-    <SidebarDetail log={selectedLog} onClose={() => setSelectedLog(null)} />
-  )}
-  {showPreview && (
-    <ExportPreviewModal
-      open={showPreview}
-      onClose={() => setShowPreview(false)}
-      onConfirm={handleConfirmExport}
-      data={filtered}
-    />
-  )}
-</AnimatePresence>
+        {selectedLog && (
+          <SidebarDetail
+            log={selectedLog}
+            onClose={() => setSelectedLog(null)}
+          />
+        )}
+        {showPreview && (
+          <ExportPreviewModal
+            open={showPreview}
+            onClose={() => setShowPreview(false)}
+            onConfirm={handleConfirmExport}
+            data={filtered}
+          />
+        )}
+      </AnimatePresence>
 
       <CardSummary total={total} offline={totalOffline} solved={totalSolved} />
       <FilterBar
@@ -233,8 +248,8 @@ const handleConfirmExport = () => {
         setInterfaceFilter={setInterfaceFilter}
         interfaces={interfaces}
         onExportCSV={() => handlePreview("csv")}
-  onExportPDF={() => handlePreview("pdf")}
-  onReset={handleReset}
+        onExportPDF={() => handlePreview("pdf")}
+        onReset={handleReset}
       />
       <TroubleTable
         loading={loading}
@@ -246,9 +261,13 @@ const handleConfirmExport = () => {
       />
       <AnimatePresence>
         {selectedLog && (
-          <SidebarDetail log={selectedLog} onClose={() => setSelectedLog(null)} />
+          <SidebarDetail
+            log={selectedLog}
+            onClose={() => setSelectedLog(null)}
+          />
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }

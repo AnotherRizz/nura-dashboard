@@ -1,4 +1,4 @@
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { ArrowPathRoundedSquareIcon, FolderArrowDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 export default function FilterBar({
   search, setSearch,
@@ -34,7 +34,7 @@ export default function FilterBar({
         <select
           value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
+          className="px-6 py-2 bg-gray-100/50 text-gray-500 dark:bg-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-800 rounded-md text-sm"
         >
           {months.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
@@ -44,7 +44,7 @@ export default function FilterBar({
         <select
           value={yearFilter}
           onChange={(e) => setYearFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
+          className="px-6 py-2 bg-gray-100/50 text-gray-500 dark:bg-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-800 rounded-md text-sm"
         >
           <option value="All">Semua Tahun</option>
           {years.map((y) => (
@@ -55,7 +55,7 @@ export default function FilterBar({
         <select
           value={deviceFilter}
           onChange={(e) => setDeviceFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
+          className="px-6 py-2 bg-gray-100/50 text-gray-500 dark:bg-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-800 rounded-md text-sm"
         >
           <option value="All">Semua Device</option>
           {devices.map((dev: string) => (
@@ -66,13 +66,19 @@ export default function FilterBar({
         <select
           value={interfaceFilter}
           onChange={(e) => setInterfaceFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
+          className="px-6 py-2 bg-gray-100/50 text-gray-500 dark:bg-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-800 rounded-md text-sm"
         >
           <option value="All">Semua Interface</option>
           {interfaces.map((iface: string) => (
             <option key={iface} value={iface}>{iface}</option>
           ))}
         </select>
+          <button
+          onClick={onReset}
+          className="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-white rounded-md text-sm hover:bg-gray-300 transition"
+        >
+          <ArrowPathRoundedSquareIcon className="h-4 w-4 text-gray-800 dark:text-white font-bold" />
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -83,29 +89,23 @@ export default function FilterBar({
             placeholder="Cari device..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
+            className="pl-10 pr-40 py-2 bg-gray-100/70 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md text-sm"
           />
         </div>
 
-        <button
-          onClick={onReset}
-          className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm hover:bg-gray-500 transition"
-        >
-          Reset
-        </button>
+      
 
         <button
           onClick={onExportCSV}
-          className="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition"
-        >
-          Export CSV
+          className="px-4 py-2 flex gap-1 items-center bg-green-600 text-white rounded-md text-xs font-bold hover:bg-green-700 transition"
+        ><FolderArrowDownIcon className="h-5 w-5 " />
+           CSV
         </button>
 
         <button
           onClick={onExportPDF}
-          className="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition"
-        >
-          Export PDF
+          className="px-4 py-2 flex gap-1 items-center bg-red-600 text-white rounded-md text-xs font-bold hover:bg-red-700 transition"
+        ><FolderArrowDownIcon className="h-5 w-5 " />PDF
         </button>
       </div>
     </div>
