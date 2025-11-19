@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 interface Paket {
   id: string;
@@ -43,7 +44,7 @@ export default function UserRegistrationForm({
     fetch("/api/paket")
       .then((res) => res.json())
       .then((res) => setPaketList(res.data || []))
-      .catch(() => alert("Gagal memuat data paket"));
+      .catch(() => toast.error("Gagal memuat data paket"));
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {

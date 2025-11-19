@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import toast from "react-hot-toast";
 
 export default function UserMetaCard() {
   const { user } = useAuth();
@@ -41,11 +42,11 @@ export default function UserMetaCard() {
 
     if (error) {
       console.error("Update error:", error);
-      alert("Gagal update profile!");
+      toast.error("Gagal update profile!");
       return;
     }
 
-    alert("Profile berhasil diperbarui!");
+    toast.success("Profile berhasil diperbarui!");
     setIsEditing(false);
   };
 

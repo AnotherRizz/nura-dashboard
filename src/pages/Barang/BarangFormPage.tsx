@@ -5,6 +5,7 @@ import BarangForm from "../../components/form/BarangForm";
 import TambahStokForm from "../../components/form/TambahStokForm";
 import { supabase } from "../../services/supabaseClient";
 import { FolderPlusIcon, InboxArrowDownIcon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
 
 type TabKey = "barang-baru" | "tambah-stok";
 
@@ -47,7 +48,7 @@ export default function BarangFormPage() {
 
         if (error) {
           console.error("Error fetch barang:", error);
-          alert("Gagal memuat data barang");
+          toast.error("Gagal memuat data barang");
           setInitialData(undefined);
           return;
         }
@@ -98,7 +99,7 @@ export default function BarangFormPage() {
       navigate("/barang");
     } catch (err) {
       console.error("Gagal menyimpan barang:", err);
-      alert("Terjadi kesalahan saat menyimpan barang");
+      toast.error("Terjadi kesalahan saat menyimpan barang");
     }
   };
 
@@ -118,7 +119,7 @@ export default function BarangFormPage() {
           onClick={() => setActiveTab("barang-baru")}
           className={`px-4 py-2 rounded-t-lg font-semibold flex items-center ${
             activeTab === "barang-baru"
-              ? "bg-white dark:bg-gray-800 text-orange-500 border-b border-orange-500"
+              ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
               : " dark:bg-gray-800 dark:text-gray-300"
           }`}
         >
@@ -130,7 +131,7 @@ export default function BarangFormPage() {
           onClick={() => setActiveTab("tambah-stok")}
           className={`px-4 py-2 rounded-t-lg font-semibold flex items-center ${
             activeTab === "tambah-stok"
-              ? "bg-white dark:bg-gray-800 text-orange-500 border-b border-orange-500"
+              ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
               : " dark:bg-gray-800 dark:text-gray-300"
           }`}
         >

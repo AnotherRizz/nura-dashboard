@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { toZonedTime, format } from "date-fns-tz";
+import toast from "react-hot-toast";
 
 // 🕐 Konversi UTC → WIB (Asia/Jakarta)
 function formatToWIB(dateString: string | null | undefined) {
@@ -11,7 +12,7 @@ function formatToWIB(dateString: string | null | undefined) {
 
 export function exportCSV(filtered: any[]) {
   if (!filtered || filtered.length === 0) {
-    alert("Tidak ada data untuk diekspor!");
+    toast.error("Tidak ada data untuk diekspor!");
     return;
   }
 

@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../../services/supabaseClient";
+import toast from "react-hot-toast";
 
 interface Area {
   id: string;
@@ -140,7 +141,7 @@ export default function DeviceForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama || !formData.no_sn || !formData.areaId) {
-      return alert("Nama, Nomor Seri, dan Area wajib diisi");
+      return toast("Nama, Nomor Seri, dan Area wajib diisi");
     }
     onSubmit(formData);
   };

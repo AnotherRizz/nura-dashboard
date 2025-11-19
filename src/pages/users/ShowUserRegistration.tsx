@@ -159,19 +159,19 @@ export default function ShowUserRegistration() {
               Paket Dipilih
             </h2>
             <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-              <p className="text-lg font-bold">{user.paket.nama_paket}</p>
+              <p className="text-lg font-bold dark:text-white">{user.paket.nama_paket}</p>
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 {user.paket.deskripsi}
               </p>
-              <p className="mt-2">
-                <span className="font-medium">Speed:</span> {user.paket.speed}
+              <p className="mt-2 dark:text-gray-300">
+                <span className="font-medium dark:text-gray-300">Speed:</span> {user.paket.speed}
               </p>
-              <p>
-                <span className="font-medium">Harga:</span> Rp{" "}
+              <p className="dark:text-gray-300">
+                <span className="font-medium dark:text-gray-300">Harga:</span> Rp{" "}
                 {user.paket.harga.toLocaleString("id-ID")}
               </p>
               {user.paket.fitur && (
-                <ul className="mt-2 list-disc list-inside">
+                <ul className="mt-2 list-disc list-inside dark:text-gray-300">
                   {user.paket.fitur.map((fitur, i) => (
                     <li key={i} className="text-sm">
                       {fitur}

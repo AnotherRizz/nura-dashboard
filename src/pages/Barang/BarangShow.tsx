@@ -21,7 +21,13 @@ interface DetailMasuk {
   id_barang: string;
   jumlah: number;
   harga_masuk: string;
+
+  // 🔥 tambahkan ini agar tidak error
+  barangMasuk?: {
+    tanggal_masuk: string;
+  };
 }
+
 
 interface Barang {
   id: string;
@@ -52,18 +58,24 @@ export default function BarangShow() {
   const fetchBarang = async () => {
     try {
       // 🔹 Query Supabase dengan join kategori, supplier, dan detailMasuk
-      const { data, error } = await supabase
-        .from("Barang")
-        .select(
-          `
-          *,
-          kategori:Kategori (nama_kategori),
-          supplier:Supplier (nama_supplier,nama_pt, alamat, nama_pic, telp_pic),
-          detailMasuk:DetailBarangMasuk (id, id_barang_masuk, id_barang, jumlah, harga_masuk)
-        `
-        )
-        .eq("id", id)
-        .single();
+    const { data, error } = await supabase
+  .from("Barang")
+  .select(`
+    *,
+    detailMasuk:DetailBarangMasuk (
+      id,
+      id_barang,
+      id_barang_masuk,
+      jumlah,
+      harga_masuk,
+      barangMasuk:BarangMasuk!id_barang_masuk (
+        tanggal_masuk
+      )
+    )
+  `)
+  .eq("id", id)
+  .single();
+
 
       if (error) throw error;
       setBarang(data as Barang);
@@ -81,9 +93,12 @@ export default function BarangShow() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!barang) return <div className="p-6">Barang tidak ditemukan.</div>;
 
-  // 🔹 Data untuk Bar Chart
   const chartCategories =
-    barang.detailMasuk?.map((d) => `Masuk #${d.id_barang_masuk}`) || [];
+    barang.detailMasuk?.map((d) =>
+   new Date(d.barangMasuk?.tanggal_masuk ?? "").toLocaleDateString("id-ID")
+
+    ) || [];
+
   const chartSeries = [
     {
       name: "Jumlah Masuk",
@@ -166,7 +181,7 @@ export default function BarangShow() {
                   Stok:
                 </span>
                 <span className="text-gray-900 dark:text-white">
-                  {barang.stok}/{barang.satuan}
+                  {barang.stok} {barang.satuan}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -273,19 +288,37 @@ export default function BarangShow() {
                 Riwayat Barang Masuk
               </h2>
               <Table>
-                <TableHeader>
+                <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell>ID Masuk</TableCell>
-                    <TableCell>Jumlah</TableCell>
-                    <TableCell>Harga Masuk</TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Tanggal Masuk
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Jumlah
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Harga Masuk
+                    </TableCell>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {barang.detailMasuk.map((d) => (
                     <TableRow key={d.id}>
-                      <TableCell>{d.id_barang_masuk}</TableCell>
-                      <TableCell>{d.jumlah} unit</TableCell>
-                      <TableCell>
+                      <TableCell className="px-4 py-3 dark:text-white/80">
+                      {new Date(d.barangMasuk?.tanggal_masuk ?? "").toLocaleDateString("id-ID")}
+
+                      </TableCell>
+
+                      <TableCell className="px-4 py-3 dark:text-white/80">
+                        {d.jumlah} unit
+                      </TableCell>
+                      <TableCell className="px-4 py-3 dark:text-white/80">
                         {parseInt(d.harga_masuk).toLocaleString("id-ID", {
                           style: "currency",
                           currency: "IDR",

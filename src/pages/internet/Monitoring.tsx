@@ -45,14 +45,21 @@ const Monitoring: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
   const [viewMode, setViewMode] = useState<"card" | "chart">("card");
+  const [dynamicTitle, setDynamicTitle] = useState(
+    "Monitoring Device (Realtime)"
+  );
 
   const POLL_INTERVAL = 2000;
 
   const fetchDevices = async (keyword = "") => {
     setLoading(true);
     try {
-      let query = supabase.from("Device").select("*").order("id", { ascending: false });
-      if (keyword && keyword.trim().length > 0) query = query.ilike("nama", `%${keyword}%`);
+      let query = supabase
+        .from("Device")
+        .select("*")
+        .order("id", { ascending: false });
+      if (keyword && keyword.trim().length > 0)
+        query = query.ilike("nama", `%${keyword}%`);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -89,12 +96,12 @@ const Monitoring: React.FC = () => {
           const user = encodeURIComponent(d.username ?? "admin");
           const pass = encodeURIComponent(d.password ?? "");
 
-        const API_BASE = import.meta.env.VITE_API_BASE_URL;
+          const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-const res = await fetch(
-  `${API_BASE}/api/realtime/${ip}?user=${user}&pass=${pass}&port=${port}`,
-  { method: "GET", cache: "no-store" }
-);
+          const res = await fetch(
+            `${API_BASE}/api/realtime/${ip}?user=${user}&pass=${pass}&port=${port}`,
+            { method: "GET", cache: "no-store" }
+          );
 
           const json = await res.json();
           if (!res.ok || json?.error) return { id: d.id, connected: false };
@@ -158,13 +165,16 @@ const res = await fetch(
 
   return (
     <div>
-      <PageMeta title="Monitoring Dashboard" description="Monitoring semua device Mikrotik" />
+      <PageMeta
+        title="Monitoring Dashboard"
+        description="Monitoring semua device Mikrotik"
+      />
       <PageBreadcrumb pageTitle="Monitoring Dashboard" />
 
       <div className="min-h-screen rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-semibold text-gray-800 text-2xl dark:text-white/90">
-            Monitoring Device (Realtime)
+            {dynamicTitle}
           </h3>
 
           <div className="hidden lg:flex items-center gap-4">
@@ -174,8 +184,10 @@ const res = await fetch(
                   ? "bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl text-white"
                   : "bg-gray-100 dark:bg-gray-800/90 text-gray-400"
               }`}
-              onClick={() => setViewMode("card")}
-            >
+              onClick={() => {
+                setViewMode("card");
+                setDynamicTitle("Monitoring Device (Realtime)");
+              }}>
               Card
             </button>
             <button
@@ -184,8 +196,10 @@ const res = await fetch(
                   ? "bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl text-white"
                   : "bg-gray-100 dark:bg-gray-800/90 text-gray-400"
               }`}
-              onClick={() => setViewMode("chart")}
-            >
+              onClick={() => {
+                setViewMode("chart");
+                setDynamicTitle("Monitoring Device (Chart View)");
+              }}>
               Chart
             </button>
           </div>
@@ -204,11 +218,17 @@ const res = await fetch(
         {loading ? (
           <DeviceSkeleton count={6} />
         ) : interfaceCards.length === 0 ? (
-          <div className="p-6 text-center text-gray-600">Tidak ada data interface.</div>
+          <div className="p-6 text-center text-gray-600">
+            Tidak ada data interface.
+          </div>
         ) : viewMode === "card" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {interfaceCards.map((item, idx) => (
-              <CardDevice key={`${item.device.id}-${item.iface.iface}-${idx}`} device={item.device} iface={item.iface} />
+              <CardDevice
+                key={`${item.device.id}-${item.iface.iface}-${idx}`}
+                device={item.device}
+                iface={item.iface}
+              />
             ))}
           </div>
         ) : (

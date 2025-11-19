@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import { useNavigate } from "react-router";
+import toast from "react-hot-toast";
 
 interface Barang {
   id: string;
@@ -53,7 +54,7 @@ export default function TambahStokForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBarang || !jumlah) {
-      alert("Pilih barang dan isi jumlah stok!");
+      toast.error("Pilih barang dan isi jumlah stok!");
       return;
     }
 
@@ -63,17 +64,22 @@ export default function TambahStokForm() {
       // 1️⃣ Ambil data barang lama
       const { data: barang, error: barangError } = await supabase
         .from("Barang")
-        .select("stok, nama_barang")
+        .select("stok, nama_barang, harga")
         .eq("id", selectedBarang)
         .single();
 
       if (barangError || !barang) throw barangError;
 
-      // 2️⃣ Update stok barang
+      // 2️⃣ Update stok + harga barang
       const newStock = (barang.stok ?? 0) + parseInt(jumlah);
+      const newHarga = parseFloat(hargaMasuk || "0");
+
       const { error: updateError } = await supabase
         .from("Barang")
-        .update({ stok: newStock })
+        .update({
+          stok: newStock,
+          harga: newHarga > 0 ? newHarga : barang.harga,
+        })
         .eq("id", selectedBarang);
 
       if (updateError) throw updateError;
@@ -106,25 +112,23 @@ export default function TambahStokForm() {
 
       if (detailError) throw detailError;
 
-      alert("✅ Stok berhasil ditambahkan!");
+      toast.success(" Stok berhasil ditambahkan!");
       navigate("/barang");
     } catch (err) {
-      console.error("❌ Gagal menambah stok:", err);
-      alert("Terjadi kesalahan saat menambah stok.");
+      console.error(" Gagal menambah stok:", err);
+      toast.error("Terjadi kesalahan saat menambah stok.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 Ambil nama barang terpilih
   const selectedBarangName =
     barangList.find((b) => b.id === selectedBarang)?.nama_barang || "";
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 bg-white dark:border-gray-800 dark:bg-white/[0.03] dark:text-white p-6 rounded shadow-md"
-    >
+      className="space-y-4 bg-white dark:border-gray-800 dark:bg-white/[0.03] dark:text-white p-6 rounded shadow-md">
       <h2 className="text-lg font-semibold text-brand-600 mb-4">
         Tambah Stok Barang
       </h2>
@@ -155,10 +159,11 @@ export default function TambahStokForm() {
                     setSearchTerm(b.nama_barang);
                     setShowDropdown(false);
                   }}
-                  className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer"
-                >
+                  className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer">
                   {b.nama_barang}{" "}
-                  <span className="text-sm text-gray-500">(stok: {b.stok})</span>
+                  <span className="text-sm text-gray-500">
+                    (stok: {b.stok})
+                  </span>
                 </li>
               ))
             ) : (
@@ -196,19 +201,16 @@ export default function TambahStokForm() {
 
       {/* Tombol */}
       <div className="flex justify-end gap-3 pt-3">
-       
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
           {loading ? "Menyimpan..." : "Tambah Stok"}
         </button>
-         <button
+        <button
           type="button"
           onClick={() => navigate("/barang")}
-          className="px-4 py-2 bg-gray-800 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600"
-        >
+          className="px-4 py-2 bg-gray-800 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600">
           Batal
         </button>
       </div>
