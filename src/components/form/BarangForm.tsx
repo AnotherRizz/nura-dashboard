@@ -174,7 +174,9 @@ export default function BarangForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Kode Barang */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Kode Barang</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Kode Barang
+          </label>
           <input
             type="text"
             name="kode_barang"
@@ -186,7 +188,9 @@ export default function BarangForm({
 
         {/* Nama Barang */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Nama Barang</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Nama Barang
+          </label>
           <input
             type="text"
             name="nama_barang"
@@ -198,7 +202,9 @@ export default function BarangForm({
 
         {/* Harga */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Harga</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Harga <span className="text-xs text-gray-400"> cth : 1000000</span>
+          </label>
           <input
             type="number"
             name="harga"
@@ -210,7 +216,9 @@ export default function BarangForm({
 
         {/* Stok */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Stok</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Stok
+          </label>
           <input
             type="number"
             name="stok"
@@ -222,7 +230,9 @@ export default function BarangForm({
 
         {/* Satuan */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Satuan</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Satuan
+          </label>
           <input
             type="text"
             name="satuan"
@@ -234,7 +244,9 @@ export default function BarangForm({
 
         {/* 🔍 Searchable Dropdown Kategori */}
         <div className="relative">
-          <label className="block mb-1 text-sm font-medium dark:text-white">Kategori</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Kategori
+          </label>
           <input
             type="text"
             value={
@@ -269,8 +281,7 @@ export default function BarangForm({
                       setSearchKategori(k.nama_kategori);
                       setShowKategoriDropdown(false);
                     }}
-                    className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer"
-                  >
+                    className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer">
                     {k.nama_kategori}
                   </li>
                 ))
@@ -285,7 +296,9 @@ export default function BarangForm({
 
         {/* 🔍 Searchable Dropdown Supplier */}
         <div className="relative">
-          <label className="block mb-1 text-sm font-medium dark:text-white">Supplier</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Supplier
+          </label>
           <input
             type="text"
             value={
@@ -320,8 +333,7 @@ export default function BarangForm({
                       setSearchSupplier(s.nama_supplier);
                       setShowSupplierDropdown(false);
                     }}
-                    className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer"
-                  >
+                    className="px-3 py-2 hover:bg-blue-100 dark:hover:bg-gray-600 cursor-pointer">
                     {s.nama_supplier}
                   </li>
                 ))
@@ -336,7 +348,9 @@ export default function BarangForm({
 
         {/* Merk */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Merk</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Merk
+          </label>
           <input
             type="text"
             name="merk"
@@ -348,7 +362,9 @@ export default function BarangForm({
 
         {/* Tipe */}
         <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Tipe</label>
+          <label className="block mb-1 text-sm font-medium dark:text-white">
+            Tipe
+          </label>
           <input
             type="text"
             name="tipe"
@@ -359,30 +375,42 @@ export default function BarangForm({
         </div>
 
         {/* Upload Gambar */}
-        <div>
-          <label className="block mb-1 text-sm font-medium dark:text-white">Upload Gambar</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium dark:text-white">
+            Upload Gambar
+          </label>
+
           <input
             type="file"
             name="gambar"
             accept="image/*"
             onChange={handleChange}
-            className="w-full"
+            className="w-full text-warning-500 text-xs file:mr-3 file:py-1 file:px-3 file:border-0 file:rounded file:bg-warning-500 file:text-white file:cursor-pointer"
           />
-          {(initialValues?.gambar || formData.gambar) && (
-            <img
-              src={
-                formData.gambar instanceof File
-                  ? URL.createObjectURL(formData.gambar)
-                  : initialValues?.gambar
-                  ? supabase.storage
-                      .from("barang-images")
-                      .getPublicUrl(initialValues.gambar).data.publicUrl
-                  : ""
-              }
-              alt="Preview"
-              className="mt-2 w-24 h-24 object-cover rounded border"
-            />
-          )}
+
+          {/* Preview */}
+          {(() => {
+            let previewUrl = "";
+
+            if (formData.gambar instanceof File) {
+              previewUrl = URL.createObjectURL(formData.gambar);
+            } else if (initialValues?.gambar) {
+              const { data } = supabase.storage
+                .from("barang-images")
+                .getPublicUrl(initialValues.gambar);
+              previewUrl = data?.publicUrl || "";
+            }
+
+            return (
+              previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="mt-2 w-28 h-28 object-cover rounded-lg border shadow-sm"
+                />
+              )
+            );
+          })()}
         </div>
       </div>
 
@@ -391,15 +419,13 @@ export default function BarangForm({
         <button
           type="submit"
           disabled={uploading}
-          className="rounded-xl bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 disabled:opacity-50"
-        >
+          className="rounded-xl bg-blue-700 px-4 py-2 text-white hover:bg-blue-800 disabled:opacity-50">
           {uploading ? "Menyimpan..." : "Simpan"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-xl bg-gray-800 text-white px-4 py-2 hover:bg-gray-700"
-        >
+          className="rounded-xl bg-gray-800 text-white px-4 py-2 hover:bg-gray-700">
           Batal
         </button>
       </div>

@@ -189,7 +189,7 @@ export default function TambahStokForm() {
 
       {/* Harga Masuk */}
       <div>
-        <label className="block mb-1 text-sm font-medium">Harga Masuk</label>
+        <label className="block mb-1 text-sm font-medium">Harga Masuk <span className="text-xs text-gray-400"> cth : 1000000</span></label>
         <input
           type="number"
           value={hargaMasuk}

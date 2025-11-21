@@ -186,9 +186,9 @@ const Monitoring: React.FC = () => {
               }`}
               onClick={() => {
                 setViewMode("card");
-                setDynamicTitle("Monitoring Device (Realtime)");
+                setDynamicTitle("Monitoring Device (Realtime View)");
               }}>
-              Card
+              Realtime
             </button>
             <button
               className={`px-4 py-2 rounded-lg ${
@@ -198,9 +198,9 @@ const Monitoring: React.FC = () => {
               }`}
               onClick={() => {
                 setViewMode("chart");
-                setDynamicTitle("Monitoring Device (Chart View)");
+                setDynamicTitle("Monitoring Device (Grafik View)");
               }}>
-              Chart
+              Grafik
             </button>
           </div>
         </div>

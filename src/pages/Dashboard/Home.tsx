@@ -9,7 +9,9 @@ export default function Home() {
   const { role, loading } = useUserRole();
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6 w-full z-[9999] min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+      <p className="text-3  xl text-gray-700 dark:text-white">Loading...</p>
+    </div>;
   }
 
   // Jika tidak login
@@ -52,7 +54,7 @@ export default function Home() {
         </div>
       )}
 
-      {role === "noc" && (
+      {role === "admin" && (
         <div className="p-6 space-y-4">
           <h2 className="text-xl font-bold">Dashboard User</h2>
           <p>Selamat datang! Anda tidak memiliki akses ke menu admin/staff.</p>
