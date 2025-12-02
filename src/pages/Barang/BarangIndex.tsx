@@ -6,6 +6,7 @@ import Button from "../../components/ui/button/Button";
 import { useNavigate } from "react-router";
 import Pagination from "../../components/tables/Pagination";
 import { supabase } from "../../services/supabaseClient";
+import BarangDetailSidebar from "../../components/common/BarangDetailSidebar";
 
 export default function BarangIndex() {
   const [dataBarang, setDataBarang] = useState<any[]>([]);
@@ -22,9 +23,21 @@ export default function BarangIndex() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedBarang, setSelectedBarang] = useState<any | null>(null);
+
   const limit = 10;
 
   const navigate = useNavigate();
+
+  const openDetail = (barang: any) => {
+    setSelectedBarang(barang);
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+  };
 
   // 🔹 Fetch kategori list (untuk dropdown)
   useEffect(() => {
@@ -42,26 +55,31 @@ export default function BarangIndex() {
     try {
       setLoading(true);
 
-      let query = supabase
-        .from("Barang")
-        .select(
-          `
-          id,
-          kode_barang,
-          nama_barang,
-          stok,
-          harga,
-          merk,
-          tipe,
-          satuan,
-          gambar,
-          kategori:id_kategori ( nama_kategori ),
-          supplier:supplier_id ( nama_supplier )
-        `,
-          { count: "exact" }
-        )
-        .order("id", { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+    let query = supabase
+  .from("Barang")
+  .select(
+    `
+      id,
+      kode_barang,
+      nama_barang,
+      harga,
+      merk,
+      tipe,
+      satuan,
+      gambar,
+      kategori:id_kategori ( nama_kategori ),
+      supplier:supplier_id ( nama_supplier ),
+
+      stok_gudang:stok_gudang (
+        stok,
+        gudang:gudang_id ( nama_gudang )
+      )
+    `,
+    { count: "exact" }
+  )
+  .order("id", { ascending: false })
+  .range((page - 1) * limit, page * limit - 1);
+
 
       // 🔹 Filter search
       if (debouncedSearch) {
@@ -79,19 +97,25 @@ export default function BarangIndex() {
         throw error;
       }
 
-      const formatted = data?.map((item: any) => ({
-        id: item.id,
-        kode_barang: item.kode_barang,
-        nama_barang: item.nama_barang,
-        stok: item.stok,
-        harga: item.harga,
-        merk: item.merk,
-        tipe: item.tipe,
-        satuan: item.satuan,
-        gambar: item.gambar,
-        kategori: item.kategori,
-        supplier: item.supplier,
-      }));
+     const formatted = data?.map((item: any) => ({
+  id: item.id,
+  kode_barang: item.kode_barang,
+  nama_barang: item.nama_barang,
+  harga: item.harga,
+  merk: item.merk,
+  tipe: item.tipe,
+  satuan: item.satuan,
+  gambar: item.gambar,
+  kategori: item.kategori,
+  supplier: item.supplier,
+
+  // stok total dari stok_gudang
+  stok: item.stok_gudang?.reduce((sum: number, sg: any) => sum + sg.stok, 0) || 0,
+
+  // daftar gudang + stok per gudang
+  gudang_list: item.stok_gudang || []
+}));
+
 
       setDataBarang(formatted || []);
       setMeta({
@@ -129,7 +153,10 @@ export default function BarangIndex() {
 
   return (
     <div>
-      <PageMeta title="Barang Dashboard" description="Halaman dashboard barang" />
+      <PageMeta
+        title="Barang Dashboard"
+        description="Halaman dashboard barang"
+      />
       <PageBreadcrumb pageTitle="Halaman Barang" />
       <p className="text-sm text-gray-500 dark:text-gray-400 sm:text-base md:w-2/3 mb-5">
         Halaman ini menampilkan daftar lengkap barang yang tersimpan dalam
@@ -147,8 +174,7 @@ export default function BarangIndex() {
                 setSelectedKategori(e.target.value);
                 setPage(1);
               }}
-              className="h-11 rounded-lg border border-gray-200 bg-transparent py-2.5 px-3 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90"
-            >
+              className="h-11 rounded-lg border border-gray-200 bg-transparent py-2.5 px-3 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90">
               <option value="">Semua Kategori</option>
               {kategoriList.map((kat) => (
                 <option key={kat.id} value={kat.id}>
@@ -189,8 +215,7 @@ export default function BarangIndex() {
           <Button
             size="sm"
             className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl"
-            onClick={() => navigate("/barang/add")}
-          >
+            onClick={() => navigate("/barang/add")}>
             Tambah Barang
           </Button>
         </div>
@@ -198,15 +223,24 @@ export default function BarangIndex() {
         <BarangTable
           data={dataBarang}
           loading={loading}
+          onDetail={(item) => openDetail(item)}
           onDelete={async (id: string) => {
             try {
-              const { error } = await supabase.from("Barang").delete().eq("id", id);
+              const { error } = await supabase
+                .from("Barang")
+                .delete()
+                .eq("id", id);
               if (error) throw error;
               fetchData();
             } catch {
               alert("Terjadi kesalahan saat menghapus barang");
             }
           }}
+        />
+        <BarangDetailSidebar
+          open={detailOpen}
+          onClose={closeDetail}
+          barang={selectedBarang}
         />
 
         {meta && meta.totalPages > 1 && (

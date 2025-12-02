@@ -16,7 +16,6 @@ import {
   ServerStackIcon,
   MapIcon,
   HomeModernIcon,
-  AdjustmentsHorizontalIcon,
   DocumentTextIcon,
   RectangleStackIcon,
 } from "@heroicons/react/24/outline";
@@ -57,7 +56,7 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
       ],
     },
        {
-      name: "Data Barang",
+      name: "Master Data",
       icon: <BoxCubeIcon />,
       subItems: [
         { name: "Barang", path: "/barang", pro: true },
@@ -69,12 +68,20 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
       name: "Inventory",
       icon: <RectangleStackIcon />,
       subItems: [
+       
+        { name: "Warehouse", path: "/warehouse"},
         { name: "Stok In", path: "/barang-masuk"},
         { name: "Stok Out", path: "/barang-keluar" },
       ],
     },
-    { icon: <ServerStackIcon />, name: "Devices", path: "/device" },
-    { icon: <AdjustmentsHorizontalIcon />, name: "Monitoring", path: "/monitoring" },
+       {
+      name: "Mikrotik",
+      icon: <ServerStackIcon />,
+      subItems: [
+        { name: "Devices", path: "/device"},
+        {name: "Monitoring", path: "/monitoring"  },
+      ],
+    },
       {
       name: "Summary",
       icon:  <DocumentTextIcon />,
@@ -130,7 +137,7 @@ if (role === "admin") {
   // 🔹 NOC hanya Devices, Monitoring, Barang, Summary
 
   filteredNavItems = navItems.filter((item) =>
-    ["Dashboard Overview",'Inventory',"Devices", "Monitoring", "Summary", "Data Barang","Side Area"].includes(item.name)
+    ["Dashboard Overview",'Inventory',"Mikrotik", "Summary", "Master Data","Side Area"].includes(item.name)
   );
 
   filteredGeneralItems = [];     // tidak perlu

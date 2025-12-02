@@ -107,10 +107,11 @@ export default function StokOutFormPage() {
     },
   ]);
 
-await supabase.rpc("decrease_stok", {
-  barang_id: item.id_barang,
-  jumlah: item.jumlah,
+await supabase.rpc("decrease_stok_multi_gudang", {
+  p_barang_id: item.id_barang,
+  p_jumlah: item.jumlah,
 });
+
 
 }
 

@@ -13,6 +13,14 @@ interface FormDataType {
   keterangan: string;
   items: ItemType[];
 }
+interface StokGudangType {
+  barang_id: number;
+  stok: number;
+  gudang: {
+    nama_gudang: string;
+  }[]; // ← Supabase kirim array
+}
+
 
 export default function StokOutForm({
   initialValues,
@@ -22,6 +30,8 @@ export default function StokOutForm({
   const [barangList, setBarangList] = useState<any[]>([]);
   const [search, setSearch] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<boolean[]>([]);
+const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
+
 
   const [formData, setFormData] = useState<FormDataType>({
     tanggal_keluar: "",
@@ -31,6 +41,40 @@ export default function StokOutForm({
     ...initialValues,
   });
 
+  /* ============================================================
+     AMBIL STOK GUDANG
+  ============================================================ */
+  useEffect(() => {
+    const fetchStokGudang = async () => {
+      const { data } = await supabase
+        .from("stok_gudang")
+        .select("barang_id, stok, gudang(nama_gudang)");
+
+      setStokGudang(data  || []);
+    };
+
+    fetchStokGudang();
+  }, []);
+
+ const getGudangList = (barangId: number) => {
+  return stokGudang
+    .filter((s) => s.barang_id === barangId)
+    .map((s) => `${s.gudang[0]?.nama_gudang} (${s.stok})`)
+    .join(", ");
+};
+
+
+  const getStokByBarang = (barangId: number) => {
+    return stokGudang.filter((s) => s.barang_id === barangId);
+  };
+
+  const getTotalStok = (barangId: number) => {
+    return getStokByBarang(barangId).reduce((t, s) => t + s.stok, 0);
+  };
+
+  /* ============================================================
+     AMBIL BARANG
+  ============================================================ */
   useEffect(() => {
     const fetchBarang = async () => {
       const { data } = await supabase.from("Barang").select("*");
@@ -74,7 +118,7 @@ export default function StokOutForm({
       onSubmit={(e) => {
         e.preventDefault();
 
-        // PERBAIKAN DISINI 🔥
+        // Gunakan harga default jika harga_keluar null
         const fixedFormData = {
           ...formData,
           items: formData.items.map((item) => {
@@ -89,7 +133,8 @@ export default function StokOutForm({
 
         onSubmit(fixedFormData);
       }}
-      className="space-y-4">
+      className="space-y-4"
+    >
       {/* ========================= FORM HEADER ========================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative z-20">
@@ -111,7 +156,9 @@ export default function StokOutForm({
         </div>
 
         <div>
-          <label className="block mb-1 font-medium">PIC <small>(penanggungjawab)</small></label>
+          <label className="block mb-1 font-medium">
+            PIC <small>(penanggungjawab)</small>
+          </label>
           <input
             type="text"
             value={formData.pic}
@@ -138,7 +185,8 @@ export default function StokOutForm({
             bg-gray-100 dark:bg-gray-800
             border-gray-300 dark:border-gray-600
             text-gray-900 dark:text-gray-200
-          "></textarea>
+          "
+        ></textarea>
       </div>
 
       <hr className="border-gray-300 dark:border-gray-700" />
@@ -156,6 +204,8 @@ export default function StokOutForm({
             .includes((search[idx] || "").toLowerCase())
         );
 
+        const totalStok = barangDipilih ? getTotalStok(barangDipilih.id) : 0;
+
         return (
           <div
             key={idx}
@@ -163,7 +213,8 @@ export default function StokOutForm({
               p-4 rounded border 
               bg-gray-100 dark:bg-gray-800/50 
               border-gray-300 dark:border-gray-700
-            ">
+            "
+          >
             {/* SEARCHABLE DROPDOWN */}
             <label className="font-medium text-sm">Barang</label>
             <div className="relative mt-1">
@@ -201,35 +252,51 @@ export default function StokOutForm({
                   overflow-y-auto rounded shadow-lg z-30
                   bg-white dark:bg-gray-900
                   border border-gray-300 dark:border-gray-700
-                ">
+                "
+                >
                   {filtered.length === 0 && (
                     <div className="p-2 text-gray-500 text-sm">
                       Tidak ditemukan
                     </div>
                   )}
 
-                  {filtered.map((b) => (
-                    <div
-                      key={b.id}
-                      onClick={() => {
-                        updateItem(idx, "id_barang", b.id);
+                 {filtered.map((b) => {
+  const total = getTotalStok(b.id);
+  const gudangList = getGudangList(b.id); // new
 
-                        const s = [...search];
-                        s[idx] = b.nama_barang;
-                        setSearch(s);
+  return (
+    <div
+      key={b.id}
+      onClick={() => {
+        updateItem(idx, "id_barang", b.id);
 
-                        const open = [...openDropdown];
-                        open[idx] = false;
-                        setOpenDropdown(open);
-                      }}
-                      className="
-                        px-3 py-2 cursor-pointer 
-                        hover:bg-gray-200 dark:hover:bg-gray-700
-                        text-gray-900 dark:text-gray-200
-                      ">
-                      {b.nama_barang} — stok: {b.stok}
-                    </div>
-                  ))}
+        const s = [...search];
+        s[idx] = b.nama_barang;
+        setSearch(s);
+
+        const open = [...openDropdown];
+        open[idx] = false;
+        setOpenDropdown(open);
+      }}
+      className="
+        px-3 py-2 cursor-pointer 
+        hover:bg-gray-200 dark:hover:bg-gray-700
+        text-gray-900 dark:text-gray-200
+      "
+    >
+      <div className="font-medium">{b.nama_barang}</div>
+
+      <div className="text-xs text-gray-500">
+        Total stok: {total}
+      </div>
+
+      <div className="text-xs text-gray-400">
+        {gudangList}
+      </div>
+    </div>
+  );
+})}
+
                 </div>
               )}
             </div>
@@ -249,7 +316,7 @@ export default function StokOutForm({
                   Jumlah
                   {barangDipilih && (
                     <span className="text-xs text-gray-500 ml-2">
-                      (Stok: {barangDipilih.stok})
+                      (Stok: {totalStok})
                     </span>
                   )}
                 </label>
@@ -265,8 +332,7 @@ export default function StokOutForm({
                       return;
                     }
 
-                    // Batasi agar tidak lebih dari stok
-                    const safeValue = Math.min(value, barangDipilih.stok);
+                    const safeValue = Math.min(value, totalStok);
 
                     updateItem(idx, "jumlah", safeValue || null);
                   }}
@@ -277,17 +343,17 @@ export default function StokOutForm({
       text-gray-900 dark:text-gray-200
     "
                   placeholder="jumlah"
-                  disabled={barangDipilih?.stok === 0}
+                  disabled={totalStok === 0}
                   min={1}
-                  max={barangDipilih?.stok || undefined}
+                  max={totalStok || undefined}
                 />
-                {barangDipilih?.stok === 0 && (
+                {totalStok === 0 && (
                   <p className="text-xs text-red-500 mt-1">Stok habis</p>
                 )}
               </div>
 
               {/* HARGA KELUAR */}
-              <div>
+              {/* <div>
                 <label className="block text-sm mb-1">Harga Keluar</label>
                 <input
                   type="number"
@@ -314,7 +380,7 @@ export default function StokOutForm({
                     {barangDipilih.harga.toLocaleString("id-ID")})
                   </p>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* HAPUS */}
@@ -324,7 +390,8 @@ export default function StokOutForm({
                 mt-3 bg-red-600 hover:bg-red-700 text-white 
                 px-3 py-1 rounded
               "
-              onClick={() => removeItem(idx)}>
+              onClick={() => removeItem(idx)}
+            >
               Hapus
             </button>
           </div>
@@ -337,7 +404,8 @@ export default function StokOutForm({
         className="
           bg-gray-800 hover:bg-gray-700 text-white 
           px-4 py-2 rounded
-        ">
+        "
+      >
         + Tambah Item
       </button>
 
@@ -345,14 +413,16 @@ export default function StokOutForm({
       <div className="flex gap-3 mt-4">
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        >
           Simpan
         </button>
 
         <button
           type="button"
           onClick={onCancel}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+        >
           Batal
         </button>
       </div>

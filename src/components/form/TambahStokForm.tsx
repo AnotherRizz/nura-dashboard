@@ -8,136 +8,197 @@ import toast from "react-hot-toast";
 interface Barang {
   id: string;
   nama_barang: string;
-  stok: number;
   harga: number;
+}
+
+interface Gudang {
+  id: string;
+  nama_gudang: string;
 }
 
 interface Row {
   barangId: string;
   nama: string;
   jumlah: string;
+
+  // NEW: gudang
+  gudangId: string;
+  gudangSearch: string;
+  gudangNama: string;
+  showGudangDropdown: boolean;
+
+  // barang search
   search: string;
   showDropdown: boolean;
 }
 
 export default function TambahStokMultiple() {
   const [barangList, setBarangList] = useState<Barang[]>([]);
+  const [gudangList, setGudangList] = useState<Gudang[]>([]); // NEW
+
   const [rows, setRows] = useState<Row[]>([
-    { barangId: "", nama: "", jumlah: "", search: "", showDropdown: false }
+    {
+      barangId: "",
+      nama: "",
+      jumlah: "",
+
+      gudangId: "",
+      gudangNama: "",
+      gudangSearch: "",
+      showGudangDropdown: false,
+
+      search: "",
+      showDropdown: false,
+    },
   ]);
 
-  const [keterangan, setKeterangan] = useState(""); // <-- KETERANGAN BARU!
+  const [keterangan, setKeterangan] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // LOAD DATA
   useEffect(() => {
-    const fetchBarang = async () => {
-      const { data } = await supabase
+    const fetchData = async () => {
+      const { data: barang } = await supabase
         .from("Barang")
-        .select("id,nama_barang,stok,harga")
+        .select("id,nama_barang,harga")
         .order("nama_barang");
-      setBarangList(data || []);
+
+      const { data: gudang } = await supabase
+        .from("gudang") // NEW
+        .select("*")
+        .order("nama_gudang");
+
+      setBarangList(barang || []);
+      setGudangList(gudang || []);
     };
-    fetchBarang();
+
+    fetchData();
   }, []);
 
   const updateRow = <K extends keyof Row>(index: number, field: K, value: Row[K]) => {
-    setRows(prev => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+    setRows((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
   };
 
   const addRow = () => {
-    setRows(prev => [
+    setRows((prev) => [
       ...prev,
-      { barangId: "", nama: "", jumlah: "", search: "", showDropdown: false }
+      {
+        barangId: "",
+        nama: "",
+        jumlah: "",
+
+        gudangId: "",
+        gudangNama: "",
+        gudangSearch: "",
+        showGudangDropdown: false,
+
+        search: "",
+        showDropdown: false,
+      },
     ]);
   };
 
   const removeRow = (index: number) => {
     if (rows.length === 1) return;
-    setRows(prev => prev.filter((_, i) => i !== index));
+    setRows((prev) => prev.filter((_, i) => i !== index));
   };
+
+  // ======================= SUBMIT =========================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!keterangan.trim()) {
-      toast.error("Keterangan harus diisi!");
-      return;
-    }
+    if (!keterangan.trim()) return toast.error("Keterangan harus diisi!");
 
     for (const r of rows) {
-      if (!r.barangId || !r.jumlah) {
-        toast.error("Semua baris harus diisi!");
-        return;
-      }
+      if (!r.barangId || !r.jumlah || !r.gudangId)
+        return toast.error("Semua baris harus lengkap! Barang, jumlah & gudang wajib diisi.");
     }
 
     setLoading(true);
 
     try {
-      const { data: masukData, error: masukError } = await supabase
+      // Insert BarangMasuk
+      const { data: masuk, error: masukErr } = await supabase
         .from("BarangMasuk")
         .insert({
           tanggal_masuk: new Date().toISOString(),
-          keterangan: keterangan // <-- sekarang memakai input user
+          keterangan,
         })
         .select()
         .single();
 
-      if (masukError) throw masukError;
+      if (masukErr) throw masukErr;
 
+      // Insert detail
       const detailInsert = [];
-      const updatePromises = [];
 
       for (const r of rows) {
-        const barang = barangList.find(b => b.id === r.barangId);
+        const barang = barangList.find((b) => b.id === r.barangId);
         if (!barang) continue;
 
-        const hargaFinal = barang.harga;
+        const jumlahInt = parseInt(r.jumlah);
 
+        // Insert detail barang masuk
         detailInsert.push({
-          id_barang_masuk: masukData.id,
+          id_barang_masuk: masuk.id,
           id_barang: r.barangId,
-          jumlah: parseInt(r.jumlah),
-          harga_masuk: hargaFinal
+          jumlah: jumlahInt,
+          harga_masuk: barang.harga,
         });
 
-        updatePromises.push(
-          supabase
-            .from("Barang")
-            .update({
-              stok: barang.stok + parseInt(r.jumlah),
-              harga: hargaFinal
-            })
-            .eq("id", barang.id)
-        );
+        // ====== SIMPAN STOK KE TABEL STOK_GUDANG ======
+        const { data: existing } = await supabase
+          .from("stok_gudang")
+          .select("*")
+          .eq("barang_id", r.barangId)
+          .eq("gudang_id", r.gudangId)
+          .maybeSingle();
+
+        if (existing) {
+          // update stok lama
+          await supabase
+            .from("stok_gudang")
+            .update({ stok: existing.stok + jumlahInt })
+            .eq("id", existing.id);
+        } else {
+          // insert stok baru
+          await supabase.from("stok_gudang").insert({
+            barang_id: r.barangId,
+            gudang_id: r.gudangId,
+            stok: jumlahInt,
+          });
+        }
       }
 
       await supabase.from("DetailBarangMasuk").insert(detailInsert);
-      await Promise.all(updatePromises);
 
-      toast.success("Berhasil menambah stok!");
+      toast.success("Stok berhasil ditambahkan!");
       navigate("/barang-masuk");
-
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menambah stok");
+      toast.error("Gagal menyimpan");
     } finally {
       setLoading(false);
     }
   };
 
+  // =====================================================
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      {/* ================== FORM ================== */}
       <form
         className="space-y-5 p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800"
         onSubmit={handleSubmit}
       >
-        <h2 className="text-lg font-semibold dark:text-teal-400">Tambah Stok Barang</h2>
+        <h2 className="text-lg font-semibold dark:text-teal-400">
+          Tambah Stok Barang (Multi)
+        </h2>
 
-        {/* INPUT KETERANGAN */}
+        {/* Keterangan */}
         <div>
           <label className="text-sm font-semibold dark:text-white/80">Keterangan</label>
           <input
@@ -145,13 +206,18 @@ export default function TambahStokMultiple() {
             value={keterangan}
             onChange={(e) => setKeterangan(e.target.value)}
             className="w-full border rounded px-3 py-2 mt-1 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-            placeholder="Contoh: Barang restock gudang"
+            placeholder="Contoh: Restock gudang utama"
           />
         </div>
 
+        {/* BARIS BARANG */}
         {rows.map((row, index) => {
-          const filtered = barangList.filter(b =>
+          const filteredBarang = barangList.filter((b) =>
             b.nama_barang.toLowerCase().includes(row.search.toLowerCase())
+          );
+
+          const filteredGudang = gudangList.filter((g) =>
+            g.nama_gudang.toLowerCase().includes(row.gudangSearch.toLowerCase())
           );
 
           return (
@@ -159,15 +225,13 @@ export default function TambahStokMultiple() {
               key={index}
               className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900 dark:border-gray-700 shadow-sm relative"
             >
-              {/* Search */}
+              {/* ================= BARANG SEARCH ================= */}
               <label className="text-sm font-semibold dark:text-white/80">Barang</label>
               <input
                 type="text"
                 value={row.nama || row.search}
                 onChange={(e) => {
                   updateRow(index, "search", e.target.value);
-                  updateRow(index, "nama", "");
-                  updateRow(index, "barangId", "");
                   updateRow(index, "showDropdown", true);
                 }}
                 className="w-full border rounded px-3 py-2 mb-1 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
@@ -176,11 +240,11 @@ export default function TambahStokMultiple() {
 
               {row.showDropdown && (
                 <ul className="absolute bg-white dark:bg-gray-800 border dark:border-gray-600 w-full max-h-48 overflow-y-auto rounded shadow z-20">
-                  {filtered.length > 0 ? (
-                    filtered.map(b => (
+                  {filteredBarang.length > 0 ? (
+                    filteredBarang.map((b) => (
                       <li
                         key={b.id}
-                        className="px-3 py-2 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 cursor-pointer"
+                        className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer dark:text-white"
                         onClick={() => {
                           updateRow(index, "barangId", b.id);
                           updateRow(index, "nama", b.nama_barang);
@@ -189,26 +253,64 @@ export default function TambahStokMultiple() {
                         }}
                       >
                         {b.nama_barang}
-                        <span className="text-gray-500"> (stok: {b.stok})</span>
                       </li>
                     ))
                   ) : (
-                    <li className="px-3 py-2 text-gray-400">Tidak ditemukan</li>
+                    <li className="px-3 py-2 text-gray-500">Tidak ditemukan</li>
                   )}
                 </ul>
               )}
 
-              {/* Jumlah */}
-              <label className="text-sm font-semibold block mt-3 dark:text-white/80">Jumlah</label>
+              {/* ================= JUMLAH ================= */}
+              <label className="block mt-3 text-sm font-semibold dark:text-white/80">
+                Jumlah
+              </label>
               <input
                 type="number"
-                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                 value={row.jumlah}
                 onChange={(e) => updateRow(index, "jumlah", e.target.value)}
                 placeholder="Jumlah"
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
               />
 
-              {/* Delete */}
+              {/* ================= GUDANG SEARCH ================= */}
+              <label className="block mt-3 text-sm font-semibold dark:text-white/80">
+                Gudang
+              </label>
+              <input
+                type="text"
+                value={row.gudangNama || row.gudangSearch}
+                onChange={(e) => {
+                  updateRow(index, "gudangSearch", e.target.value);
+                  updateRow(index, "showGudangDropdown", true);
+                }}
+                placeholder="Cari gudang..."
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+              />
+
+              {row.showGudangDropdown && (
+                <ul className="absolute bg-white dark:bg-gray-800 border dark:border-gray-600 w-full max-h-48 overflow-y-auto rounded shadow z-20 mt-1">
+                  {filteredGudang.length > 0 ? (
+                    filteredGudang.map((g) => (
+                      <li
+                        key={g.id}
+                        className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer dark:text-white"
+                        onClick={() => {
+                          updateRow(index, "gudangId", g.id);
+                          updateRow(index, "gudangNama", g.nama_gudang);
+                          updateRow(index, "gudangSearch", g.nama_gudang);
+                          updateRow(index, "showGudangDropdown", false);
+                        }}
+                      >
+                        {g.nama_gudang}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-3 py-2 text-gray-500">Gudang tidak ditemukan</li>
+                  )}
+                </ul>
+              )}
+
               {rows.length > 1 && (
                 <button
                   type="button"
@@ -222,7 +324,7 @@ export default function TambahStokMultiple() {
           );
         })}
 
-        {/* Add row */}
+        {/* ADD ROW */}
         <button
           type="button"
           onClick={addRow}
@@ -231,7 +333,7 @@ export default function TambahStokMultiple() {
           + Tambah Baris
         </button>
 
-        {/* Submit */}
+        {/* SUBMIT */}
         <div className="flex justify-end pt-4">
           <button
             type="submit"
@@ -243,7 +345,7 @@ export default function TambahStokMultiple() {
         </div>
       </form>
 
-      {/* ================== PREVIEW ================== */}
+      {/* PREVIEW */}
       <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800">
         <h3 className="text-lg font-semibold mb-3 dark:text-teal-400">Preview</h3>
 
@@ -252,12 +354,19 @@ export default function TambahStokMultiple() {
         </p>
 
         {rows.map((r, i) => {
-          const barang = barangList.find(b => b.id === r.barangId);
+          const barang = barangList.find((b) => b.id === r.barangId);
 
           return (
             <div key={i} className="border-b dark:border-gray-700 pb-3 mb-3">
-              <p className="dark:text-white"><b>Barang:</b> {r.nama || "-"}</p>
-              <p className="dark:text-white"><b>Jumlah:</b> {r.jumlah || "-"}</p>
+              <p className="dark:text-white">
+                <b>Barang:</b> {r.nama || "-"}
+              </p>
+              <p className="dark:text-white">
+                <b>Jumlah:</b> {r.jumlah || "-"}
+              </p>
+              <p className="dark:text-white">
+                <b>Gudang:</b> {r.gudangNama || "-"}
+              </p>
               <p className="dark:text-white">
                 <b>Harga Per Item:</b>{" "}
                 {barang ? barang.harga.toLocaleString() : "-"}
@@ -272,7 +381,6 @@ export default function TambahStokMultiple() {
           );
         })}
       </div>
-
     </div>
   );
 }

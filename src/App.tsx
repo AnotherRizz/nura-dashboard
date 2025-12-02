@@ -44,6 +44,8 @@ import StokOutIndex from "./pages/Inventory/StokOutIndex";
 import StokOutFormPage from "./pages/Inventory/StokOutFormPage";
 import StokOutShow from "./pages/Inventory/StokOutShow";
 import DashboardInventory from "./pages/Dashboard/DashboardInventory";
+import WarehouseIndex from "./pages/Inventory/WarehouseIndex";
+import WarehouseShow from "./pages/Inventory/WarehouseShow";
 // import GuidePage from "./pages/guide/guidePage";
 
 export default function App() {
@@ -69,6 +71,8 @@ export default function App() {
           <Route path="/barang/add" element={<BarangFormPage />} />
           <Route path="/barang/:id" element={<BarangShow />} />
           <Route path="/barang/edit/:id" element={<BarangFormPage />} />
+           {/* <Route path="/gudang" element={<GudangIndex />} />
+          <Route path="/gudang/:id" element={<GudangShow />} /> */}
 
           {/* inventory page */}
           <Route path="/barang-masuk" element={<StokInIndex />} />
@@ -76,6 +80,10 @@ export default function App() {
           <Route path="/barang-keluar" element={<StokOutIndex />} />
           <Route path="/barang-keluar/add" element={<StokOutFormPage />} />
           <Route path="/barang-keluar/:id" element={<StokOutShow />} />
+          <Route path="/warehouse" element={<WarehouseIndex />} />
+          <Route path="/warehouse/:id" element={<WarehouseShow />} />
+
+         
 
           <Route path="/dashboard-inventory" element={<DashboardInventory />} />
 

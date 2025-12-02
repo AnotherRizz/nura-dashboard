@@ -5,95 +5,53 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { useNavigate } from "react-router";
 import ActionButton from "../ui/ActionButton";
-import BarangTableSkeleton from "../skeleton/BarangTableSkeleton";
+import { useNavigate } from "react-router";
 
-interface Barang {
-  gudang_list: any;
-  id: string;
-  nama_barang: string;
-  kode_barang: string;
-  stok: number;
-  harga: number;
-  kategori: {
-    nama_kategori: string;
-  };
-  supplier: {
-    nama_supplier: string;
-  };
-  gudang: {
-    nama_gudang: string;
-  };
+interface Gudang {
+  id: number;
+  nama_gudang: string;
+  lokasi?: string | null;
 }
 
-interface BasicTableOneProps {
-  data: Barang[];
-  loading?: boolean;
-  onDelete?: (id: string) => void;
-  onDetail?: (barang: Barang) => void;
+interface GudangTableProps {
+  data: Gudang[];
+  loading: boolean;
+  onEdit: (item: Gudang) => void;
+  onDelete: (id: number) => void;
 }
 
-export default function BarangTable({
+export default function GudangTable({
   data,
   loading,
+  onEdit,
   onDelete,
-  onDetail,
-}: BasicTableOneProps) {
-  const navigate = useNavigate();
-
-  const handleDelete = (id: string) => {
-    if (confirm("Yakin ingin menghapus barang ini?")) {
-      onDelete?.(id);
-    }
-  };
-
+}: GudangTableProps) {
+   const navigate = useNavigate();
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Header selalu tampil */}
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Kode Barang
+                No
               </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Nama Barang
+                Nama Gudang
               </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Kategori
+                Lokasi
               </TableCell>
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Supplier
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Gudang
-              </TableCell>
-
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Stok
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Harga
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6 ">
                 Aksi
               </TableCell>
             </TableRow>
@@ -101,57 +59,27 @@ export default function BarangTable({
 
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {loading ? (
-              <BarangTableSkeleton />
-            ) : data.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-6 text-center text-gray-500 dark:text-white/80">
-                  Barang tidak ditemukan. Silakan coba kata kunci lain.
+                <TableCell colSpan={4} className="text-center py-4">
+                  Loading...
                 </TableCell>
               </TableRow>
-            ) : (
-              data.map((barang) => (
-                <TableRow key={barang.id}>
+            ) : data.length ? (
+              data.map((g, i) => (
+                <TableRow key={g.id}>
                   <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.kode_barang}
+                    {i + 1}
                   </TableCell>
                   <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.nama_barang}
+                    {g.nama_gudang}
                   </TableCell>
                   <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.kategori.nama_kategori}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.supplier.nama_supplier}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.gudang_list.map((g: any) => (
-                      <div key={g.gudang.nama_gudang}>
-                        {g.gudang.nama_gudang}
-                      </div>
-                    ))}
-                  </TableCell>
-
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.gudang_list.map((g: any) => (
-                      <div key={g.gudang.nama_gudang}>{g.stok}</div>
-                    ))}
-                  </TableCell>
-
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.harga.toLocaleString("id-ID", {
-                      style: "currency",
-                      currency: "IDR",
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    })}
+                    {g.lokasi ?? "-"}
                   </TableCell>
 
                   <TableCell className="flex gap-1">
                     <ActionButton
-                      // onClick={() => navigate(`/barang/${barang.id}`)}
-                      onClick={() => onDetail?.(barang)}
+                      onClick={() => navigate(`/gudang/${g.id}`)}
                       title="Detail"
                       color="brand">
                       <svg
@@ -168,11 +96,10 @@ export default function BarangTable({
                         />
                       </svg>
                     </ActionButton>
-
                     <ActionButton
-                      onClick={() => navigate(`/barang/edit/${barang.id}`)}
+                      color="green"
                       title="Edit"
-                      color="green">
+                      onClick={() => onEdit(g)}>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -189,9 +116,11 @@ export default function BarangTable({
                     </ActionButton>
 
                     <ActionButton
-                      onClick={() => handleDelete(barang.id)}
+                      color="red"
                       title="Hapus"
-                      color="red">
+                      onClick={() => {
+                        if (confirm("Yakin hapus gudang?")) onDelete(g.id);
+                      }}>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -209,6 +138,12 @@ export default function BarangTable({
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4">
+                  Tidak ada data gudang
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
