@@ -1,13 +1,17 @@
 // src/pages/barang/BarangFormPage.tsx
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import BarangForm from "../../components/form/BarangForm";
 import TambahStokForm from "../../components/form/TambahStokForm";
 import { supabase } from "../../services/supabaseClient";
-import { FolderPlusIcon, InboxArrowDownIcon } from "@heroicons/react/24/outline";
+import {
+  FolderPlusIcon,
+  InboxArrowDownIcon,
+} from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import UploadExcelBarang from "../../components/form/UploadExcelBarang";
 
-type TabKey = "barang-baru" | "tambah-stok";
+type TabKey = "barang-baru" | "tambah-stok" | "upload-excel";
 
 interface InitialBarangData {
   kode_barang?: string;
@@ -27,7 +31,9 @@ export default function BarangFormPage() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<TabKey>("barang-baru");
-  const [initialData, setInitialData] = useState<InitialBarangData | undefined>(undefined);
+  const [initialData, setInitialData] = useState<InitialBarangData | undefined>(
+    undefined
+  );
   const [loadingInitial, setLoadingInitial] = useState<boolean>(false);
 
   // ambil detail barang kalau ada id (edit mode)
@@ -89,7 +95,9 @@ export default function BarangFormPage() {
         error = updateError;
       } else {
         // insert new barang
-        const { error: insertError } = await supabase.from("Barang").insert([formData]);
+        const { error: insertError } = await supabase
+          .from("Barang")
+          .insert([formData]);
         error = insertError;
       }
 
@@ -104,7 +112,7 @@ export default function BarangFormPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white dark:border-gray-800 dark:bg-white/[0.03] rounded shadow">
+    <div className="max-w-4xl mx-auto p-6 bg-white dark:border-gray-800 dark:bg-gray-900 rounded shadow">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-brand-600">
@@ -121,10 +129,19 @@ export default function BarangFormPage() {
             activeTab === "barang-baru"
               ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
               : " dark:bg-gray-800 dark:text-gray-300"
-          }`}
-        >
+          }`}>
           <FolderPlusIcon className="w-5 h-5" /> Barang Baru
         </button>
+        {/* <button
+          type="button"
+          onClick={() => setActiveTab("upload-excel")}
+          className={`px-4 py-2 rounded-t-lg font-semibold flex items-center ${
+            activeTab === "upload-excel"
+              ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
+              : "dark:bg-gray-800 dark:text-gray-300"
+          }`}>
+          📄 Upload Excel
+        </button> */}
 
         <button
           type="button"
@@ -133,30 +150,30 @@ export default function BarangFormPage() {
             activeTab === "tambah-stok"
               ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
               : " dark:bg-gray-800 dark:text-gray-300"
-          }`}
-        >
+          }`}>
           <InboxArrowDownIcon className="w-5 h-5" /> Tambah Stok
         </button>
       </div>
 
       {/* Content */}
-      <div>
-        {activeTab === "barang-baru" ? (
-          // jika loading initial data (ketika edit) tampilkan loader sederhana
-          loadingInitial ? (
-            <div className="p-4">Memuat data...</div>
-          ) : (
-            <BarangForm
-              initialValues={initialData}
-              onSubmit={handleSubmit}
-              onCancel={() => navigate("/barang")}
-            />
-          )
-        ) : (
-          // Tab Tambah Stok selalu menampilkan form khusus tambah stok
-          <TambahStokForm />
-        )}
-      </div>
+     <div>
+  {activeTab === "barang-baru" ? (
+    loadingInitial ? (
+      <div className="p-4">Memuat data...</div>
+    ) : (
+      <BarangForm
+        initialValues={initialData}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate("/barang-masuk")}
+      />
+    )
+  ) : activeTab === "tambah-stok" ? (
+    <TambahStokForm />
+  ) : (
+    <UploadExcelBarang />
+  )}
+</div>
+
     </div>
   );
 }

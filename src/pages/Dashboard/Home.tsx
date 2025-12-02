@@ -1,5 +1,5 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
-import DemographicCard from "../../components/ecommerce/DemographicCard";
+// import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
 import RecentLogs from "../../components/ecommerce/RecentLogs";
 import GangguanChart from "../../components/charts/GangguanChart";
@@ -32,15 +32,15 @@ export default function Home() {
             <EcommerceMetrics />
           </div>
 
-          <div className="col-span-12 xl:col-span-7">
+          <div className="col-span-12 xl:col-span-6">
             <GangguanChart />
           </div>
 
-          <div className="col-span-12 xl:col-span-5">
+          {/* <div className="col-span-12 xl:col-span-5">
             <DemographicCard />
-          </div>
+          </div> */}
 
-          <div className="col-span-12 xl:col-span-7">
+          <div className="col-span-12 xl:col-span-6">
             <RecentLogs />
           </div>
         </div>

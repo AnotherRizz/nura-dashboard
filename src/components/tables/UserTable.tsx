@@ -5,9 +5,9 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { useNavigate } from "react-router";
 import ActionButton from "../ui/ActionButton";
-
+import { useState } from "react";
+import { supabase } from "../../services/supabaseClient";
 interface User {
   id: string;
   name: string;
@@ -51,13 +51,39 @@ export default function UserTable({
   loading,
   onToggle,
 }: UserTableProps) {
-  const navigate = useNavigate();
 
   // const handleDelete = (id: string) => {
   //   if (confirm("Yakin ingin menghapus user ini?")) {
   //     onDelete?.(id);
   //   }
   // };
+
+  const [showRoleModal, setShowRoleModal] = useState(false);
+const [selectedUser, setSelectedUser] = useState<User | null>(null);
+const [newRole, setNewRole] = useState("");
+
+const openRoleModal = (user: User) => {
+  setSelectedUser(user);
+  setNewRole(user.role);
+  setShowRoleModal(true);
+};
+const handleSaveRole = async () => {
+  if (!selectedUser) return;
+
+  const { error } = await supabase
+    .from("User")
+    .update({ role: newRole })
+    .eq("id", selectedUser.id);
+
+  if (error) {
+    alert("Gagal update role");
+    return;
+  }
+
+  // Update UI lokal
+  selectedUser.role = newRole;
+  setShowRoleModal(false);
+};
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -140,12 +166,52 @@ export default function UserTable({
                     </TableCell>
 
                     <TableCell className="flex gap-1">
-                      <ActionButton
-                        onClick={() => navigate(`/users/${user.id}`)}
-                        title="Detail"
-                        color="brand">
-                        Detail
-                      </ActionButton>
+                     <ActionButton
+  onClick={() => openRoleModal(user)}
+  title="Edit Role"
+  color="brand"
+>
+  Edit Role
+</ActionButton>
+{showRoleModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-[350px] shadow-xl">
+
+      <h2 className="text-lg font-semibold mb-4">Edit Role</h2>
+      <p className="mb-2 text-sm text-gray-600">
+        User: <b>{selectedUser?.name}</b>
+      </p>
+
+      <select
+        value={newRole}
+        onChange={(e) => setNewRole(e.target.value)}
+        className="w-full border rounded-lg p-2 mb-4"
+      >
+        <option value="admin">Admin</option>
+        <option value="noc">NOC</option>
+        <option value="cs">Cs</option>
+      </select>
+
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => setShowRoleModal(false)}
+          className="px-4 py-2 rounded-lg border"
+        >
+          Batal
+        </button>
+
+        <button
+          onClick={handleSaveRole}
+          className="px-4 py-2 rounded-lg bg-blue-600 text-white"
+        >
+          Simpan
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
 
                       {/* <ActionButton
                         onClick={() => navigate(`/users/edit/${user.id}`)}

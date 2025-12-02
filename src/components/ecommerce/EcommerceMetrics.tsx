@@ -5,11 +5,11 @@ import { supabase } from "../../services/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 
 import {
-  ArchiveBoxArrowDownIcon,
   ServerStackIcon,
   MapIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
 
 export default function EcommerceMetrics() {
   const { role, loading } = useUserRole();
@@ -34,7 +34,7 @@ export default function EcommerceMetrics() {
         // ================================
         if (role === "noc") {
           const { count: countBarang } = await supabase
-            .from("Barang")
+            .from("DeviceStatusLog")
             .select("*", { count: "exact", head: true });
 
           const { count: countDevice } = await supabase
@@ -80,10 +80,10 @@ export default function EcommerceMetrics() {
       {role === "noc" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
           <Card
-            icon={ArchiveBoxArrowDownIcon}
-            title="Jumlah Barang"
+            icon={ArrowPathIcon}
+            title="Total Gangguan"
             value={totalBarang}
-            suffix="item"
+            suffix="log"
             color="sky"
           />
 
@@ -97,7 +97,7 @@ export default function EcommerceMetrics() {
 
           <Card
             icon={MapIcon}
-            title="Total Area"
+            title="Total Side"
             value={totalArea}
             suffix="lokasi"
             color="orange"

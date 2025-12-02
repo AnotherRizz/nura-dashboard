@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import MultiSelect from "../MultiSelect";
 import MapPicker from "../../ui/MapPicker";
+import PolygonPicker from "../../common/PolygonPicker";
 
 interface AreaFormData {
   nama_area: string;
@@ -8,6 +9,9 @@ interface AreaFormData {
   longitude: string;
   radius: string;
   paketIds: number[];
+
+  // TAMBAHAN
+  boundary?: any; // GeoJSON Polygon
 }
 
 interface AreaFormProps {
@@ -29,6 +33,7 @@ export default function AreaForm({
     longitude: "",
     radius: "5",
     paketIds: [],
+    boundary: null,
     ...initialValues,
   });
 
@@ -49,7 +54,14 @@ export default function AreaForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    // Jika boundary diberi nilai tapi kosong, ubah jadi null
+    const prepared = {
+      ...formData,
+      boundary: formData.boundary?.coordinates?.length ? formData.boundary : null,
+    };
+
+    onSubmit(prepared);
   };
 
   return (
@@ -116,7 +128,7 @@ export default function AreaForm({
             label="Pilih Paket (bisa lebih dari 1)"
             options={paketList.map((p) => ({
               value: p.id.toString(),
-              text: p.nama_paket, // ganti dari p.nama jadi p.nama_paket
+              text: p.nama_paket,
             }))}
             defaultSelected={formData.paketIds.map((id) => id.toString())}
             onChange={(selected) =>
@@ -127,10 +139,11 @@ export default function AreaForm({
             }
           />
         </div>
-        {/* Map Picker */}
+
+        {/* Map Picker Titik */}
         <div className="">
           <label className="block mb-1 text-sm font-medium">
-            Pilih Lokasi di Peta
+            Pilih Lokasi (Titik)
           </label>
           <MapPicker
             latitude={formData.latitude}
@@ -144,7 +157,30 @@ export default function AreaForm({
             }
           />
         </div>
+
+        {/* Boundary (Polygon) */}
+        <div className="md:col-span-2">
+          <label className="block mb-1 text-sm font-medium">
+            Tentukan Boundary (Polygon Opsional)
+          </label>
+
+          <PolygonPicker
+  boundary={formData.boundary}
+  onChange={(polygon) =>
+    setFormData((prev) => ({
+      ...prev,
+      boundary: polygon,
+    }))
+  }
+/>
+
+
+          <small className="text-gray-400">
+            Boundary akan menimpa radius jika diisi.
+          </small>
+        </div>
       </div>
+
       {/* Tombol Aksi */}
       <div className="flex justify-end gap-3">
         <button

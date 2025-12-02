@@ -38,6 +38,12 @@ import Monitoring from "./pages/internet/Monitoring";
 import Summary from "./pages/internet/Summary";
 import "flatpickr/dist/themes/dark.css";
 import LogPage from "./pages/summary/Log";
+import StokInIndex from "./pages/Inventory/StokInIndex";
+import StokInShow from "./pages/Inventory/StokInShow";
+import StokOutIndex from "./pages/Inventory/StokOutIndex";
+import StokOutFormPage from "./pages/Inventory/StokOutFormPage";
+import StokOutShow from "./pages/Inventory/StokOutShow";
+import DashboardInventory from "./pages/Dashboard/DashboardInventory";
 // import GuidePage from "./pages/guide/guidePage";
 
 export default function App() {
@@ -63,6 +69,15 @@ export default function App() {
           <Route path="/barang/add" element={<BarangFormPage />} />
           <Route path="/barang/:id" element={<BarangShow />} />
           <Route path="/barang/edit/:id" element={<BarangFormPage />} />
+
+          {/* inventory page */}
+          <Route path="/barang-masuk" element={<StokInIndex />} />
+          <Route path="/barang-masuk/:id" element={<StokInShow />} />
+          <Route path="/barang-keluar" element={<StokOutIndex />} />
+          <Route path="/barang-keluar/add" element={<StokOutFormPage />} />
+          <Route path="/barang-keluar/:id" element={<StokOutShow />} />
+
+          <Route path="/dashboard-inventory" element={<DashboardInventory />} />
 
           {/* Internet Page */}
           <Route path="/paket" element={<PaketIndex />} />

@@ -22,16 +22,16 @@ export default function AreaFormPage() {
           .from("Area")
           .select(
             `
-              id,
-              nama_area,
-              latitude,
-              longitude,
-              radius,
-              PaketArea (
-                paketId
-              )
-            `
+  id,
+  nama_area,
+  latitude,
+  longitude,
+  radius,
+  boundary,
+  PaketArea ( paketId )
+`
           )
+
           .eq("id", id)
           .single();
 
@@ -42,7 +42,8 @@ export default function AreaFormPage() {
           latitude: data.latitude?.toString() || "",
           longitude: data.longitude?.toString() || "",
           radius: data.radius?.toString() || "",
-          paketIds: data.PaketArea?.map((p: any) => p.paketId) || [],
+          boundary: data.boundary || null,
+          paketIds: data.PaketArea?.map((p) => p.paketId) || [],
         });
       } catch (err) {
         console.error("Gagal fetch area:", err);

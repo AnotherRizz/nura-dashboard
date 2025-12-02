@@ -18,6 +18,7 @@ import {
   HomeModernIcon,
   AdjustmentsHorizontalIcon,
   DocumentTextIcon,
+  RectangleStackIcon,
 } from "@heroicons/react/24/outline";
 
 type NavItem = {
@@ -46,14 +47,30 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   // 🔹 DEFINISI MENU UTAMA
   // ==============================
   const navItems: NavItem[] = [
-    { icon: <GridIcon />, name: "Dashboard", path: "/" },
-    {
+    // { icon: <GridIcon />, name: "Dashboard", path: "/" },
+     {
+      name: "Dashboard Overview",
+      icon: <GridIcon />,
+      subItems: [
+        { name: "Dashboard Inventory", path: "/dashboard-inventory" },
+        { name: "Dashboard Monitoring", path: "/" },
+      ],
+    },
+       {
       name: "Data Barang",
       icon: <BoxCubeIcon />,
       subItems: [
         { name: "Barang", path: "/barang", pro: true },
         { name: "Supplier", path: "/supplier" },
         { name: "Kategori", path: "/kategori" },
+      ],
+    },
+       {
+      name: "Inventory",
+      icon: <RectangleStackIcon />,
+      subItems: [
+        { name: "Stok In", path: "/barang-masuk"},
+        { name: "Stok Out", path: "/barang-keluar" },
       ],
     },
     { icon: <ServerStackIcon />, name: "Devices", path: "/device" },
@@ -71,11 +88,21 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   ];
 
   const generalItems: NavItem[] = [
-    { icon: <BoltIcon />, name: "Paket Internet", path: "/paket" },
-    { icon: <UserPlusIcon />, name: "User Registration", path: "/registrasi-user" },
+  //  {
+  //     name: "Data Barang",
+  //     icon: <BoxCubeIcon />,
+  //     subItems: [
+  //       { name: "Barang", path: "/barang", pro: true },
+  //       { name: "Supplier", path: "/supplier" },
+  //       { name: "Kategori", path: "/kategori" },
+  //     ],
+  //   },
   ];
 
   const othersItems: NavItem[] = [
+     
+    { icon: <BoltIcon />, name: "Paket Internet", path: "/paket" },
+    { icon: <UserPlusIcon />, name: "User Registration", path: "/registrasi-user" },
     { icon: <UserGroupIcon />, name: "Account List", path: "/users" },
     { icon: <Cog6ToothIcon />, name: "Settings", path: "/profile" },
   ];
@@ -84,28 +111,54 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   let filteredGeneralItems = generalItems;
   let filteredOthersItems = othersItems;
 
- if (role === "admin") {
-  // 🔹 Admin bisa lihat semua menu
+ // ================================
+// ROLE FILTERING
+// ================================
+
+// Default semua kosong
+filteredNavItems = [];
+filteredGeneralItems = [];
+filteredOthersItems = [];
+
+if (role === "admin") {
+  // 🔹 Admin bisa semua
   filteredNavItems = navItems;
   filteredGeneralItems = generalItems;
   filteredOthersItems = othersItems;
 
 } else if (role === "noc") {
-  // 🔹 NOC hanya lihat nav dan others (tanpa general)
-  filteredNavItems = navItems;
-  filteredGeneralItems = []; // kosong, jadi tidak ditampilkan
-  filteredOthersItems = othersItems.filter(
-    (item) => item.name !== "Account List"
+  // 🔹 NOC hanya Devices, Monitoring, Barang, Summary
+
+  filteredNavItems = navItems.filter((item) =>
+    ["Dashboard Overview",'Inventory',"Devices", "Monitoring", "Summary", "Data Barang","Side Area"].includes(item.name)
+  );
+
+  filteredGeneralItems = [];     // tidak perlu
+  filteredOthersItems = [];      // noc tidak perlu paket, regis, akun
+
+} else if (role === "cs") {
+  // 🔹 CS hanya Paket dan User Registrasi
+
+  filteredNavItems = []; // CS tidak perlu main menu
+  filteredGeneralItems = [];
+  filteredOthersItems = othersItems.filter((item) =>
+    ["Paket Internet", "User Registration"].includes(item.name)
   );
 
 } else if (role === "user") {
-  // 🔹 User biasa hanya dashboard dan menu tertentu
-  filteredNavItems = navItems.filter((item) => item.name === "Dashboard");
-  filteredGeneralItems = generalItems;
-  filteredOthersItems = othersItems.filter(
-    (item) => item.name === "Account List"
+  // 🔹 User biasa hanya dashboard + barang
+
+  filteredNavItems = navItems.filter((item) =>
+    ["Dashboard"].includes(item.name)
   );
+
+  filteredGeneralItems = generalItems.filter((item) =>
+    ["Data Barang"].includes(item.name)
+  );
+
+  filteredOthersItems = []; // tidak perlu paket & user regis
 }
+
 
 
   const isActive = useCallback(
