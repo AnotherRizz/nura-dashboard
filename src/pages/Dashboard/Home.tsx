@@ -26,30 +26,27 @@ export default function Home() {
         description="Dashboard role-based rendering"
       />
 
-      {role === "noc" || role === "admin" && (
-        <div className="grid grid-cols-12 gap-4 md:gap-6">
-          <div className="col-span-12 ">
-            <EcommerceMetrics />
-          </div>
+     {(role === "noc" || role === "admin") && (
+  <div className="grid grid-cols-12 gap-4 md:gap-6">
+    <div className="col-span-12 ">
+      <EcommerceMetrics />
+    </div>
 
-          <div className="col-span-12 xl:col-span-6">
-            <GangguanChart />
-          </div>
+    <div className="col-span-12 xl:col-span-6">
+      <GangguanChart />
+    </div>
 
-          {/* <div className="col-span-12 xl:col-span-5">
-            <DemographicCard />
-          </div> */}
+    <div className="col-span-12 xl:col-span-6">
+      <RecentLogs />
+    </div>
+  </div>
+)}
 
-          <div className="col-span-12 xl:col-span-6">
-            <RecentLogs />
-          </div>
-        </div>
-      )}
 
       {role === "user" && (
         <div className="p-6 space-y-4">
            <div className="col-span-12 ">
-            <EcommerceMetrics />
+            <h1>Anda tidak punya hak akses , hubung admin</h1>
           </div>
         </div>
       )}
