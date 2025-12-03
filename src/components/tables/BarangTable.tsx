@@ -84,11 +84,6 @@ export default function BarangTable({
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Stok
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
                 Harga
               </TableCell>
               <TableCell
@@ -128,16 +123,11 @@ export default function BarangTable({
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {barang.gudang_list.map((g: any) => (
                       <div key={g.gudang.nama_gudang}>
-                        {g.gudang.nama_gudang}
+                        {g.gudang.nama_gudang}( stok {g.stok})
                       </div>
                     ))}
                   </TableCell>
 
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    {barang.gudang_list.map((g: any) => (
-                      <div key={g.gudang.nama_gudang}>{g.stok}</div>
-                    ))}
-                  </TableCell>
 
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {barang.harga.toLocaleString("id-ID", {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import MultiSelect from "../MultiSelect";
 import MapPicker from "../../ui/MapPicker";
-import PolygonPicker from "../../common/PolygonPicker";
+// import PolygonPicker from "../../common/PolygonPicker";
 
 interface AreaFormData {
   nama_area: string;
@@ -164,7 +164,7 @@ export default function AreaForm({
             Tentukan Boundary (Polygon Opsional)
           </label>
 
-          <PolygonPicker
+          {/* <PolygonPicker
   boundary={formData.boundary}
   onChange={(polygon) =>
     setFormData((prev) => ({
@@ -172,7 +172,7 @@ export default function AreaForm({
       boundary: polygon,
     }))
   }
-/>
+/> */}
 
 
           <small className="text-gray-400">

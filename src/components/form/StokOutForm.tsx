@@ -1,10 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../services/supabaseClient";
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.min.css";
+import "flatpickr/dist/themes/dark.css"; // theme gelap
+import toast from "react-hot-toast";
+
 
 interface ItemType {
   id_barang: number | null;
   jumlah: number | null;
   harga_keluar: number | null;
+  distribusi?: {
+    gudang_id: number;
+    nama_gudang: string;
+    jumlah: number;
+  }[];
 }
 
 interface FormDataType {
@@ -18,9 +28,8 @@ interface StokGudangType {
   stok: number;
   gudang: {
     nama_gudang: string;
-  }[]; // ← Supabase kirim array
+  } | null;
 }
-
 
 export default function StokOutForm({
   initialValues,
@@ -30,8 +39,23 @@ export default function StokOutForm({
   const [barangList, setBarangList] = useState<any[]>([]);
   const [search, setSearch] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<boolean[]>([]);
-const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
+  const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
 
+  const dateRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (dateRef.current) {
+      flatpickr(dateRef.current, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        static: true,
+        disableMobile: true,
+        onChange: (_selectedDates, dateStr) => {
+          setFormData((prev) => ({ ...prev, tanggal_keluar: dateStr }));
+        },
+      });
+    }
+  }, []);
 
   const [formData, setFormData] = useState<FormDataType>({
     tanggal_keluar: "",
@@ -48,21 +72,41 @@ const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
     const fetchStokGudang = async () => {
       const { data } = await supabase
         .from("stok_gudang")
-        .select("barang_id, stok, gudang(nama_gudang)");
+        .select("barang_id, stok, gudang_id, gudang(nama_gudang)");
 
-      setStokGudang(data  || []);
+      setStokGudang(
+        (data || []).map((row: any) => ({
+          barang_id: row.barang_id,
+          stok: row.stok,
+          gudang_id: row.gudang_id,
+          gudang: Array.isArray(row.gudang) ? row.gudang[0] : row.gudang,
+        }))
+      );
     };
 
     fetchStokGudang();
   }, []);
+const getRemainingStokForItem = (barangId: number, currentIndex: number) => {
+  const total = getTotalStok(barangId);
 
- const getGudangList = (barangId: number) => {
-  return stokGudang
-    .filter((s) => s.barang_id === barangId)
-    .map((s) => `${s.gudang[0]?.nama_gudang} (${s.stok})`)
-    .join(", ");
+  // Hitung jumlah yang sudah dipakai row lain
+  const usedByOtherRows = formData.items.reduce((sum, item, idx) => {
+    if (idx === currentIndex) return sum; // exclude row sekarang
+    if (item.id_barang === barangId) {
+      return sum + (item.jumlah || 0);
+    }
+    return sum;
+  }, 0);
+
+  return total - usedByOtherRows;
 };
 
+  const getGudangList = (barangId: number) => {
+    return stokGudang
+      .filter((s) => s.barang_id === barangId)
+      .map((s) => `${s.gudang?.nama_gudang || "-"} (${s.stok})`)
+      .join(", ");
+  };
 
   const getStokByBarang = (barangId: number) => {
     return stokGudang.filter((s) => s.barang_id === barangId);
@@ -70,6 +114,30 @@ const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
 
   const getTotalStok = (barangId: number) => {
     return getStokByBarang(barangId).reduce((t, s) => t + s.stok, 0);
+  };
+
+  const generateDistribusi = (barangId: number, jumlah: number) => {
+    const stokList = stokGudang
+      .filter((s) => s.barang_id === barangId)
+      .sort((a, b) => b.stok - a.stok); // ambil dari stok terbesar dulu
+
+    let sisa = jumlah;
+    const distribusi: any[] = [];
+
+    stokList.forEach((s) => {
+      if (sisa <= 0) return;
+
+      const ambil = Math.min(s.stok, sisa);
+      distribusi.push({
+        gudang_id: (s as any).gudang_id ?? 0,
+        nama_gudang: s.gudang?.nama_gudang || "-",
+        jumlah: ambil,
+      });
+
+      sisa -= ambil;
+    });
+
+    return distribusi;
   };
 
   /* ============================================================
@@ -83,11 +151,18 @@ const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
     fetchBarang();
   }, []);
 
-  const updateItem = (index: number, field: keyof ItemType, value: any) => {
-    const updated = [...formData.items];
+ const updateItem = (index: number, field: keyof ItemType | null, value: any) => {
+  const updated = [...formData.items];
+
+  if (field === null) {
+    updated[index] = value; // replace object
+  } else {
     updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, items: updated });
-  };
+  }
+
+  setFormData({ ...formData, items: updated });
+};
+
 
   const addItem = () => {
     setFormData({
@@ -114,318 +189,317 @@ const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
   const getBarang = (id: number | null) => barangList.find((b) => b.id === id);
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* ============================= FORM ============================= */}
+      <div className="md:col-span-2">
+        <form
+        
+          onSubmit={(e) => {
+            e.preventDefault();
 
-        // Gunakan harga default jika harga_keluar null
-        const fixedFormData = {
-          ...formData,
-          items: formData.items.map((item) => {
-            const barang = barangList.find((b) => b.id === item.id_barang);
+            const fixedFormData = {
+              ...formData,
+              tanggal_keluar:
+                formData.tanggal_keluar === "" ? null : formData.tanggal_keluar,
+             items: formData.items.map((item) => {
+  const barang = barangList.find((b) => b.id === item.id_barang);
 
-            return {
-              ...item,
-              harga_keluar: item.harga_keluar ?? barang?.harga ?? 0,
+  return {
+    ...item,
+    harga_keluar: item.harga_keluar ?? barang?.harga ?? 0,
+   distribusi: Array.isArray(item.distribusi) ? item.distribusi : [],
+
+  };
+}),
+
             };
-          }),
-        };
+// console.log("SUBMIT DATA:", JSON.stringify(formData, null, 2));
 
-        onSubmit(fixedFormData);
-      }}
-      className="space-y-4"
-    >
-      {/* ========================= FORM HEADER ========================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative z-20">
-          <label className="block mb-1 font-medium">Tanggal Keluar</label>
-          <input
-            type="date"
-            style={{ colorScheme: "light" }}
-            value={formData.tanggal_keluar}
-            onChange={(e) =>
-              setFormData({ ...formData, tanggal_keluar: e.target.value })
-            }
-            className="
-      w-full rounded border px-3 py-2 
-      bg-gray-100 dark:bg-gray-800 
-      border-gray-300 dark:border-gray-600 
-      text-gray-900 dark:text-gray-200
-    "
-          />
-        </div>
+            onSubmit(fixedFormData);
+          }}
+          className="space-y-5">
+          {/* ========================= HEADER ========================= */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Tanggal */}
+            <div className="relative z-20">
+              <label className="block mb-1 font-medium">Tanggal Keluar</label>
 
-        <div>
-          <label className="block mb-1 font-medium">
-            PIC <small>(penanggungjawab)</small>
-          </label>
-          <input
-            type="text"
-            value={formData.pic}
-            onChange={(e) => setFormData({ ...formData, pic: e.target.value })}
-            className="
-            w-full rounded border px-3 py-2 
-            bg-gray-100 dark:bg-gray-800
-            border-gray-300 dark:border-gray-600
-            text-gray-900 dark:text-gray-200
-          "
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block mb-1 font-medium">Keterangan</label>
-        <textarea
-          value={formData.keterangan}
-          onChange={(e) =>
-            setFormData({ ...formData, keterangan: e.target.value })
-          }
-          className="
-            w-full rounded border px-3 py-2 
-            bg-gray-100 dark:bg-gray-800
-            border-gray-300 dark:border-gray-600
-            text-gray-900 dark:text-gray-200
-          "
-        ></textarea>
-      </div>
-
-      <hr className="border-gray-300 dark:border-gray-700" />
-
-      <h3 className="text-lg font-semibold">Detail Barang Keluar</h3>
-
-      {/* ========================= ITEMS ========================= */}
-
-      {formData.items.map((item, idx) => {
-        const barangDipilih = getBarang(item.id_barang || null);
-
-        const filtered = barangList.filter((b) =>
-          b.nama_barang
-            .toLowerCase()
-            .includes((search[idx] || "").toLowerCase())
-        );
-
-        const totalStok = barangDipilih ? getTotalStok(barangDipilih.id) : 0;
-
-        return (
-          <div
-            key={idx}
-            className="
-              p-4 rounded border 
-              bg-gray-100 dark:bg-gray-800/50 
-              border-gray-300 dark:border-gray-700
-            "
-          >
-            {/* SEARCHABLE DROPDOWN */}
-            <label className="font-medium text-sm">Barang</label>
-            <div className="relative mt-1">
               <input
+                ref={dateRef}
                 type="text"
-                placeholder="Cari barang..."
-                value={search[idx] || ""}
-                onFocus={() => {
-                  const open = [...openDropdown];
-                  open[idx] = true;
-                  setOpenDropdown(open);
-                }}
-                onChange={(e) => {
-                  const s = [...search];
-                  s[idx] = e.target.value;
-                  setSearch(s);
-
-                  const open = [...openDropdown];
-                  open[idx] = true;
-                  setOpenDropdown(open);
-                }}
+                autoComplete="off"
+                value={formData.tanggal_keluar}
+                onChange={(e) =>
+                  setFormData({ ...formData, tanggal_keluar: e.target.value })
+                }
                 className="
-                  w-full border px-3 py-2 rounded 
-                  bg-gray-100 dark:bg-gray-900
-                  border-gray-300 dark:border-gray-600
-                  text-gray-900 dark:text-gray-200
-                "
-              />
-
-              {/* DROPDOWN */}
-              {openDropdown[idx] && (
-                <div
-                  className="
-                  absolute top-full left-0 w-full max-h-52 mt-1
-                  overflow-y-auto rounded shadow-lg z-30
-                  bg-white dark:bg-gray-900
-                  border border-gray-300 dark:border-gray-700
-                "
-                >
-                  {filtered.length === 0 && (
-                    <div className="p-2 text-gray-500 text-sm">
-                      Tidak ditemukan
-                    </div>
-                  )}
-
-                 {filtered.map((b) => {
-  const total = getTotalStok(b.id);
-  const gudangList = getGudangList(b.id); // new
-
-  return (
-    <div
-      key={b.id}
-      onClick={() => {
-        updateItem(idx, "id_barang", b.id);
-
-        const s = [...search];
-        s[idx] = b.nama_barang;
-        setSearch(s);
-
-        const open = [...openDropdown];
-        open[idx] = false;
-        setOpenDropdown(open);
-      }}
-      className="
-        px-3 py-2 cursor-pointer 
-        hover:bg-gray-200 dark:hover:bg-gray-700
-        text-gray-900 dark:text-gray-200
-      "
-    >
-      <div className="font-medium">{b.nama_barang}</div>
-
-      <div className="text-xs text-gray-500">
-        Total stok: {total}
-      </div>
-
-      <div className="text-xs text-gray-400">
-        {gudangList}
-      </div>
-    </div>
-  );
-})}
-
-                </div>
-              )}
-            </div>
-
-            {/* HARGA DEFAULT */}
-            {barangDipilih && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Harga default:{" "}
-                <b>Rp {barangDipilih.harga.toLocaleString("id-ID")}</b>
-              </p>
-            )}
-
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              {/* JUMALAH */}
-              <div>
-                <label className="block text-sm mb-1">
-                  Jumlah
-                  {barangDipilih && (
-                    <span className="text-xs text-gray-500 ml-2">
-                      (Stok: {totalStok})
-                    </span>
-                  )}
-                </label>
-
-                <input
-                  type="number"
-                  value={item.jumlah ?? ""}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-
-                    if (!barangDipilih) {
-                      updateItem(idx, "jumlah", value || null);
-                      return;
-                    }
-
-                    const safeValue = Math.min(value, totalStok);
-
-                    updateItem(idx, "jumlah", safeValue || null);
-                  }}
-                  className="
-      w-full border px-3 py-2 rounded 
-      bg-gray-100 dark:bg-gray-900
+      w-full rounded-lg border px-3 py-2
+      bg-gray-100 dark:bg-gray-800
       border-gray-300 dark:border-gray-600
       text-gray-900 dark:text-gray-200
+      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+      transition
     "
-                  placeholder="jumlah"
-                  disabled={totalStok === 0}
-                  min={1}
-                  max={totalStok || undefined}
-                />
-                {totalStok === 0 && (
-                  <p className="text-xs text-red-500 mt-1">Stok habis</p>
-                )}
-              </div>
+                placeholder="Pilih tanggal..."
+              />
+            </div>
 
-              {/* HARGA KELUAR */}
-              {/* <div>
-                <label className="block text-sm mb-1">Harga Keluar</label>
-                <input
-                  type="number"
-                  value={item.harga_keluar ?? ""}
-                  onChange={(e) =>
-                    updateItem(
-                      idx,
-                      "harga_keluar",
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  className="
-                    w-full border px-3 py-2 rounded 
+            {/* PIC */}
+            <div>
+              <label className="block mb-1 font-medium">
+                PIC <small>(Penanggung Jawab)</small>
+              </label>
+              <input
+                type="text"
+                value={formData.pic}
+                onChange={(e) =>
+                  setFormData({ ...formData, pic: e.target.value })
+                }
+                className="
+                w-full rounded-lg border px-3 py-2
+                bg-gray-100 dark:bg-gray-800
+                border-gray-300 dark:border-gray-600
+                text-gray-900 dark:text-gray-200
+                focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                transition
+              "
+              />
+            </div>
+          </div>
+
+          {/* Keterangan */}
+          <div>
+            <label className="block mb-1 font-medium">Keterangan</label>
+            <textarea
+              value={formData.keterangan}
+              onChange={(e) =>
+                setFormData({ ...formData, keterangan: e.target.value })
+              }
+              className="
+              w-full rounded-lg border px-3 py-2
+              bg-gray-100 dark:bg-gray-800
+              border-gray-300 dark:border-gray-600
+              text-gray-900 dark:text-gray-200
+              focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+              transition
+            "></textarea>
+          </div>
+
+          <hr className="border-gray-300 dark:border-gray-700" />
+
+          <h3 className="text-lg font-semibold">Detail Barang Keluar</h3>
+
+          {/* ========================= ITEMS ========================= */}
+          {formData.items.map((item, idx) => {
+            const barangDipilih = getBarang(item.id_barang || null);
+            const filtered = barangList.filter((b) =>
+              b.nama_barang
+                .toLowerCase()
+                .includes((search[idx] || "").toLowerCase())
+            );
+            const totalStok = barangDipilih
+              ? getTotalStok(barangDipilih.id)
+              : 0;
+
+            return (
+              <div
+                key={idx}
+                className="
+                p-4 rounded-lg border
+                bg-gray-100 dark:bg-gray-800
+                border-gray-300 dark:border-gray-700
+              ">
+                {/* Search barang */}
+                <label className="font-medium text-sm">Barang</label>
+
+                <div className="relative mt-1">
+                  <input
+                    type="text"
+                    placeholder="Cari barang..."
+                    value={search[idx] || ""}
+                    onFocus={() => {
+                      const open = [...openDropdown];
+                      open[idx] = true;
+                      setOpenDropdown(open);
+                    }}
+                    onChange={(e) => {
+                      const s = [...search];
+                      s[idx] = e.target.value;
+                      setSearch(s);
+
+                      const open = [...openDropdown];
+                      open[idx] = true;
+                      setOpenDropdown(open);
+                    }}
+                    className="
+                    w-full border px-3 py-2 rounded-lg
                     bg-gray-100 dark:bg-gray-900
                     border-gray-300 dark:border-gray-600
                     text-gray-900 dark:text-gray-200
+                    focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                    transition
                   "
-                  placeholder="Opsional"
-                />
+                  />
 
-                {item.harga_keluar == null && barangDipilih && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    *Harga default akan digunakan (Rp{" "}
-                    {barangDipilih.harga.toLocaleString("id-ID")})
-                  </p>
-                )}
-              </div> */}
-            </div>
+                  {openDropdown[idx] && (
+                    <div
+                      className="
+                      absolute top-full left-0 w-full max-h-52 mt-1
+                      overflow-y-auto rounded-lg shadow-lg z-30
+                      bg-white dark:bg-gray-900
+                      border border-gray-300 dark:border-gray-700
+                    ">
+                      {filtered.length === 0 && (
+                        <div className="p-2 text-gray-500 text-sm">
+                          Tidak ditemukan
+                        </div>
+                      )}
 
-            {/* HAPUS */}
+                      {filtered.map((b) => {
+                        const gudangList = getGudangList(b.id);
+
+                        return (
+                          <div
+                            key={b.id}
+                            onClick={() => {
+                              updateItem(idx, "id_barang", b.id);
+
+                              const s = [...search];
+                              s[idx] = b.nama_barang;
+                              setSearch(s);
+
+                              const open = [...openDropdown];
+                              open[idx] = false;
+                              setOpenDropdown(open);
+                            }}
+                            className="
+                            px-3 py-2 cursor-pointer 
+                            hover:bg-gray-200 dark:hover:bg-gray-700
+                            text-gray-900 dark:text-gray-200
+                          ">
+                            <div className="font-medium">{b.nama_barang}</div>
+                            <div className="text-xs text-gray-500">
+                              Total stok: {getTotalStok(b.id)}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {gudangList}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Jumlah */}
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                  <label className="text-sm">
+  Jumlah{" "}
+  <span className="text-gray-400">
+    (Stok tersedia: {getRemainingStokForItem(item.id_barang || 0, idx)})
+  </span>
+</label>
+
+<input
+  type="number"
+  value={item.jumlah ?? ""}
+  onChange={(e) => {
+    const raw = e.target.value;
+    const val = Number(raw);
+
+    // Biarkan user mengetik apapun dulu
+    updateItem(idx, "jumlah", raw === "" ? null : val);
+  }}
+ onBlur={() => {
+  const barangDipilih = getBarang(item.id_barang || null);
+  if (!barangDipilih) {
+    toast.error("Pilih barang terlebih dahulu!");
+    return;
+  }
+
+  const remainingStok = getRemainingStokForItem(barangDipilih.id, idx);
+  const jumlahNow = item.jumlah ?? 0;
+
+  if (jumlahNow > remainingStok) {
+    toast.error(`Jumlah tidak boleh melebihi stok tersedia (${remainingStok})`);
+  }
+
+  const fixed = Math.min(jumlahNow, remainingStok);
+
+  updateItem(idx, null as any, {
+    ...item,
+    jumlah: fixed,
+    distribusi: generateDistribusi(barangDipilih.id, fixed)
+  });
+}}
+
+  className="
+    w-full border px-3 py-2 rounded-lg
+    bg-gray-100 dark:bg-gray-900
+    border-gray-300 dark:border-gray-600
+    text-gray-900 dark:text-gray-200
+  "
+  placeholder="Jumlah"
+  disabled={totalStok === 0}
+/>
+
+
+                    {totalStok === 0 && (
+                      <p className="text-xs text-red-500 mt-1">Stok habis</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Hapus */}
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="mt-3 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg">
+                  Hapus
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Tambah item */}
+          <button
+            type="button"
+            onClick={addItem}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+            + Tambah Item
+          </button>
+
+          {/* Submit */}
+          <div className="flex gap-3 mt-4">
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+              Simpan
+            </button>
+
             <button
               type="button"
-              className="
-                mt-3 bg-red-600 hover:bg-red-700 text-white 
-                px-3 py-1 rounded
-              "
-              onClick={() => removeItem(idx)}
-            >
-              Hapus
+              onClick={onCancel}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+              Batal
             </button>
           </div>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={addItem}
-        className="
-          bg-gray-800 hover:bg-gray-700 text-white 
-          px-4 py-2 rounded
-        "
-      >
-        + Tambah Item
-      </button>
-
-      {/* SUBMIT */}
-      <div className="flex gap-3 mt-4">
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Simpan
-        </button>
-
-        <button
-          type="button"
-          onClick={onCancel}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-        >
-          Batal
-        </button>
+        </form>
       </div>
-    </form>
+
+      {/* ============================= SIDE NOTE ============================= */}
+      <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4 h-fit shadow-sm">
+        <h3 className="text-lg font-semibold mb-2">Catatan</h3>
+
+        <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+          <li>• Pilih tanggal keluar menggunakan datepicker.</li>
+          <li>• Cari barang dengan mengetik di kolom pencarian.</li>
+          <li>• Jumlah tidak boleh melebihi stok total di semua gudang.</li>
+          <li>• Klik tambah item jika ingin menambah barang lain.</li>
+          <li>• Klik hapus untuk menghapus baris barang.</li>
+        </ul>
+      </div>
+    </div>
   );
 }

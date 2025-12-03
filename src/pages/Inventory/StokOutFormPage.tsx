@@ -58,43 +58,42 @@ export default function StokOutFormPage() {
 
       let keluarId = id;
 
-     if (id) {
-  // 1️⃣ Update header
-  await supabase.from("barang_keluar").update(payload).eq("id", id);
+      if (id) {
+        // 1️⃣ Update header
+        await supabase.from("barang_keluar").update(payload).eq("id", id);
 
-  // 2️⃣ Ambil detail lama
-  const { data: oldDetails } = await supabase
-    .from("detail_barang_keluar")
-    .select("*")
-    .eq("barang_keluar_id", id);
+        // 2️⃣ Ambil detail lama
+        const { data: oldDetails } = await supabase
+          .from("detail_barang_keluar")
+          .select("*")
+          .eq("barang_keluar_id", id);
 
-  // 3️⃣ Kembalikan stok berdasarkan detail lama
-  if (oldDetails) {
-    for (const old of oldDetails) {
-      await supabase.rpc("restore_stok", {
-        barang_id: old.id_barang,
-        jumlah: old.jumlah,
-      });
-    }
-  }
+        // 3️⃣ Kembalikan stok berdasarkan detail lama
+        if (oldDetails) {
+          for (const old of oldDetails) {
+            await supabase.rpc("restore_stok", {
+              barang_id: old.id_barang,
+              jumlah: old.jumlah,
+            });
+          }
+        }
 
-  // 4️⃣ Hapus detail lama
-  await supabase
-    .from("detail_barang_keluar")
-    .delete()
-    .eq("barang_keluar_id", id);
-} else {
-  // CREATE BARU
-  const { data, error } = await supabase
-    .from("barang_keluar")
-    .insert([payload])
-    .select()
-    .single();
+        // 4️⃣ Hapus detail lama
+        await supabase
+          .from("detail_barang_keluar")
+          .delete()
+          .eq("barang_keluar_id", id);
+      } else {
+        // CREATE BARU
+        const { data, error } = await supabase
+          .from("barang_keluar")
+          .insert([payload])
+          .select()
+          .single();
 
-  if (error) throw error;
-  keluarId = data.id;
-}
-
+        if (error) throw error;
+        keluarId = data.id;
+      }
 
       // Insert detail + panggil RPC restore_stok
      for (const item of formData.items) {
@@ -104,15 +103,14 @@ export default function StokOutFormPage() {
       id_barang: item.id_barang,
       jumlah: item.jumlah,
       harga_keluar: item.harga_keluar,
+      distribusi: item.distribusi || [], // <-- ini yang hilang selama ini
     },
   ]);
 
-await supabase.rpc("decrease_stok_multi_gudang", {
-  p_barang_id: item.id_barang,
-  p_jumlah: item.jumlah,
-});
-
-
+  await supabase.rpc("decrease_stok_multi_gudang", {
+    p_barang_id: item.id_barang,
+    p_jumlah: item.jumlah,
+  });
 }
 
 

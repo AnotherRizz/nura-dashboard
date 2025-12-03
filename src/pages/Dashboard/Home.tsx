@@ -26,7 +26,7 @@ export default function Home() {
         description="Dashboard role-based rendering"
       />
 
-      {role === "noc" && (
+      {role === "noc" || role === "admin" && (
         <div className="grid grid-cols-12 gap-4 md:gap-6">
           <div className="col-span-12 ">
             <EcommerceMetrics />
@@ -54,12 +54,7 @@ export default function Home() {
         </div>
       )}
 
-      {role === "admin" && (
-        <div className="p-6 space-y-4">
-          <h2 className="text-xl font-bold">Dashboard User</h2>
-          <p>Selamat datang! Anda tidak memiliki akses ke menu admin/staff.</p>
-        </div>
-      )}
+      
     </>
   );
 }

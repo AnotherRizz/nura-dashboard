@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import Button from "../../components/ui/button/Button";
-import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import Pagination from "../../components/tables/Pagination";
 import UserTable from "../../components/tables/UserTable";
-import {supabase} from "../../services/supabaseClient";
+import { supabase } from "../../services/supabaseClient";
 
 interface User {
   id: string;
@@ -20,11 +19,16 @@ export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addPassword, setAddPassword] = useState("");
+  const [addRole, setAddRole] = useState("user");
+  const [, setAdding] = useState(false);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const navigate = useNavigate();
   const limit = 10;
 
   // 🔹 Ambil data user dari Supabase
@@ -82,6 +86,52 @@ export default function UserList() {
       toast.error("Gagal hapus user");
     }
   };
+const handleAddUser = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    setAdding(true);
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    email: addEmail,
+    password: addPassword,
+    name: addName,
+    role: addRole,
+  }),
+});
+
+
+    const result = await res.json();
+
+    if (res.status !== 200) {
+      toast.error(result.error || "Gagal membuat user");
+      return;
+    }
+
+    toast.success("User berhasil ditambahkan!");
+
+    setAddName("");
+    setAddEmail("");
+    setAddPassword("");
+    setAddRole("user");
+    setOpenAdd(false);
+
+    fetchUsers(page, search);
+
+  } catch (err: any) {
+    console.error(err);
+    toast.error(err.message || "Error!");
+  } finally {
+    setAdding(false);
+  }
+};
+
+
 
   // 🔹 Ubah status aktif user
   const handleToggle = async (id: string, newValue: boolean) => {
@@ -140,8 +190,7 @@ export default function UserList() {
             <Button
               size="sm"
               className="bg-orange-500 rounded-xl hover:bg-orange-600"
-              onClick={() => navigate("/users/add")}
-            >
+              onClick={() => setOpenAdd(true)}>
               Tambah User
             </Button>
           </div>
@@ -162,6 +211,98 @@ export default function UserList() {
           />
         </div>
       </div>
+      {openAdd && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white/90">
+              Tambah User
+            </h3>
+
+            <form
+              className="space-y-4"
+              onSubmit={handleAddUser}
+              autoComplete="off">
+              {/* Name */}
+              <div>
+                <label className="text-sm font-medium dark:text-white/90">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full mt-1 p-2 rounded-lg border dark:bg-dark-800 dark:text-white"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="text-sm font-medium dark:text-white/90">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  autoComplete="off"
+                  className="w-full mt-1 p-2 rounded-lg border dark:bg-dark-800 dark:text-white"
+                  value={addEmail}
+                  onChange={(e) => setAddEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="text-sm font-medium dark:text-white/90">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  className="w-full mt-1 p-2 rounded-lg border dark:bg-dark-800 dark:text-white"
+                  value={addPassword}
+                  onChange={(e) => setAddPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="text-sm font-medium dark:text-white/90">
+                  Role
+                </label>
+                <select
+                  className="w-full mt-1 p-2 rounded-lg border dark:bg-gray-800 dark:text-white"
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  required>
+                  <option value="admin">Admin</option>
+                  <option value="noc">Noc</option>
+                  <option value="user">User</option>
+                </select>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
+                  onClick={() => setOpenAdd(false)}>
+                  Batal
+                </Button>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-brand-500 rounded-lg hover:bg-brand-600">
+                  Simpan
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
