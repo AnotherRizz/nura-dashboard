@@ -38,6 +38,9 @@ interface BarangKeluar {
   id: string;
   tanggal_keluar: string;
   pic: string;
+  nama_project: string;
+  lokasi: string;
+  no_spk: string;
   keterangan: string | null;
   detailBarang: DetailBarang[];
 }
@@ -51,13 +54,17 @@ export default function StokOutShow() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [openPreview, setOpenPreview] = useState(false);
 
- const fetchData = async () => {
-  const { data, error } = await supabase
-    .from("barang_keluar")
-    .select(`
+  const fetchData = async () => {
+    const { data, error } = await supabase
+      .from("barang_keluar")
+      .select(
+        `
       id,
       tanggal_keluar,
       pic,
+      nama_project,
+      lokasi,
+      no_spk,
       keterangan,
       detailBarang:detail_barang_keluar (
         id,
@@ -73,27 +80,27 @@ export default function StokOutShow() {
           tipe
         )
       )
-    `)
-    .eq("id", id)
-    .single();
+    `
+      )
+      .eq("id", id)
+      .single();
 
-  if (error) console.error(error);
+    if (error) console.error(error);
 
-  // 📌 FIX di sini
-  if (data?.detailBarang) {
-    data.detailBarang = data.detailBarang.map((d: any) => ({
-      ...d,
-      distribusi:
-        typeof d.distribusi === "string"
-          ? JSON.parse(d.distribusi)
-          : d.distribusi ?? [],
-    }));
-  }
+    // 📌 FIX di sini
+    if (data?.detailBarang) {
+      data.detailBarang = data.detailBarang.map((d: any) => ({
+        ...d,
+        distribusi:
+          typeof d.distribusi === "string"
+            ? JSON.parse(d.distribusi)
+            : d.distribusi ?? [],
+      }));
+    }
 
-  setData(data as unknown as BarangKeluar);
-  setLoading(false);
-};
-
+    setData(data as unknown as BarangKeluar);
+    setLoading(false);
+  };
 
   const formatDistribusi = (list: any[], satuan: string) => {
     if (!list || list.length === 0) return "-";
@@ -153,33 +160,51 @@ export default function StokOutShow() {
             <BoxCubeIcon /> Informasi Barang Keluar
           </h2>
 
-          <div className="space-y-3">
-  <div className="grid grid-cols-[150px_1fr]">
-    <span className="font-medium text-gray-600 dark:text-white/70">
-      Tanggal Keluar
-    </span>
-    <span className="dark:text-white/80">
-      {formatTanggalWaktu(data.tanggal_keluar)}
-    </span>
-  </div>
+          <div className="space-y-3 ">
 
-  <div className="grid grid-cols-[150px_1fr]">
-    <span className="font-medium text-gray-600 dark:text-white/70">
-      PIC
-    </span>
-    <span className="dark:text-white/80">{data.pic}</span>
-  </div>
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                Tanggal Keluar
+              </span>
+              <span className="dark:text-white/80">
+                {formatTanggalWaktu(data.tanggal_keluar)}
+              </span>
+            </div>
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                No SPK
+              </span>
+              <span className="dark:text-white/80">{data.no_spk}</span>
+            </div>
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                Nama Project
+              </span>
+              <span className="dark:text-white/80">{data.nama_project}</span>
+            </div>
 
-  <div className="grid grid-cols-[150px_1fr]">
-    <span className="font-medium text-gray-600 dark:text-white/70">
-      Keterangan
-    </span>
-    <span className="dark:text-white/80">
-      {data.keterangan || "-"}
-    </span>
-  </div>
-</div>
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                PIC
+              </span>
+              <span className="dark:text-white/80">{data.pic}</span>
+            </div>
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                Lokasi
+              </span>
+              <span className="dark:text-white/80">{data.lokasi}</span>
+            </div>
 
+            <div className="grid grid-cols-[150px_1fr]">
+              <span className="font-medium text-gray-600 dark:text-white/70">
+                Keterangan
+              </span>
+              <span className="dark:text-white/80">
+                {data.keterangan || "-"}
+              </span>
+            </div>
+          </div>
 
           <h2 className="text-xl font-bold my-6 dark:text-white">
             Detail Barang Keluar

@@ -9,11 +9,14 @@ export function exportAllPDF(data: any[]) {
 
   autoTable(doc, {
     startY: 20,
-    head: [["Tanggal", "Keterangan", "PIC", "Total Item", "Total Harga"]],
+    head: [["Tanggal","No SPK", "Keterangan", "PIC","Nama Project","Lokasi", "Total Item", "Total Harga"]],
     body: data.map((item) => [
       new Date(item.tanggal_keluar).toLocaleDateString("id-ID"),
+      item.no_spk || "-",
       item.keterangan || "-",
       item.pic || "-",
+      item.nama_project || "-",
+      item.lokasi || "-",
       item.total_item,
       item.total_harga.toLocaleString("id-ID"),
     ]),

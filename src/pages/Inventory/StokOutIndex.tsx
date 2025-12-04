@@ -44,6 +44,9 @@ export default function StokOutIndex() {
         id,
         tanggal_keluar,
         pic,
+        nama_project,
+        lokasi,
+        no_spk,
         keterangan,
         detail:detail_barang_keluar (
           jumlah,

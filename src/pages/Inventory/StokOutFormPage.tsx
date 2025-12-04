@@ -8,41 +8,60 @@ export default function StokOutFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [initialData, setInitialData] = useState<any>(null);
+  
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) return;
 
-      // Ambil barang_keluar
-      const { data: keluar, error } = await supabase
+      // 🟢 MODE ADD
+      if (!id) {
+        setInitialData({});
+        setLoading(false);
+        return;
+      }
+
+      // 🟢 Ambil barang_keluar
+      const { data: keluar, error: keluarError } = await supabase
         .from("barang_keluar")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) {
-        toast.error("Gagal memuat data");
+      if (keluarError || !keluar) {
+        toast.error("Data tidak ditemukan");
+        setLoading(false);
         return;
       }
 
-      // Ambil detail_barang_keluar + relasi barang
+      // 🟢 Ambil detail + relasi barang
       const { data: detail } = await supabase
         .from("detail_barang_keluar")
         .select("*, Barang(*)")
         .eq("barang_keluar_id", id);
 
+      // Pastikan detail tidak null
+      const mappedItems = (detail || []).map((d: any) => ({
+        id_barang: d.id_barang,
+        jumlah: d.jumlah,
+        harga_keluar: d.harga_keluar,
+        distribusi: d.distribusi || [], // aman
+      }));
+
+      // 🟢 Set initial data ke form
       setInitialData({
         tanggal_keluar: keluar.tanggal_keluar
           ? new Date(keluar.tanggal_keluar).toISOString().slice(0, 16)
           : "",
-        pic: keluar.pic,
-        keterangan: keluar.keterangan,
-        items: detail?.map((d) => ({
-          id_barang: d.id_barang,
-          jumlah: d.jumlah,
-          harga_keluar: d.harga_keluar,
-        })),
+        pic: keluar.pic || "",
+        keterangan: keluar.keterangan || "",
+        nama_project: keluar.nama_project || "",
+        lokasi: keluar.lokasi || "",
+        no_spk: keluar.no_spk || "",
+        items: mappedItems,
       });
+
+      setLoading(false);
     };
 
     fetchData();
@@ -54,6 +73,9 @@ export default function StokOutFormPage() {
         tanggal_keluar: formData.tanggal_keluar,
         pic: formData.pic,
         keterangan: formData.keterangan,
+        nama_project: formData.nama_project,
+        lokasi: formData.lokasi,
+        no_spk: formData.no_spk,
       };
 
       let keluarId = id;
@@ -96,23 +118,22 @@ export default function StokOutFormPage() {
       }
 
       // Insert detail + panggil RPC restore_stok
-     for (const item of formData.items) {
-  await supabase.from("detail_barang_keluar").insert([
-    {
-      barang_keluar_id: keluarId,
-      id_barang: item.id_barang,
-      jumlah: item.jumlah,
-      harga_keluar: item.harga_keluar,
-      distribusi: item.distribusi || [], // <-- ini yang hilang selama ini
-    },
-  ]);
+      for (const item of formData.items) {
+        await supabase.from("detail_barang_keluar").insert([
+          {
+            barang_keluar_id: keluarId,
+            id_barang: item.id_barang,
+            jumlah: item.jumlah,
+            harga_keluar: item.harga_keluar,
+            distribusi: item.distribusi || [], // <-- ini yang hilang selama ini
+          },
+        ]);
 
-  await supabase.rpc("decrease_stok_multi_gudang", {
-    p_barang_id: item.id_barang,
-    p_jumlah: item.jumlah,
-  });
-}
-
+        await supabase.rpc("decrease_stok_multi_gudang", {
+          p_barang_id: item.id_barang,
+          p_jumlah: item.jumlah,
+        });
+      }
 
       toast.success("Barang Keluar berhasil disimpan");
       navigate("/barang-keluar");

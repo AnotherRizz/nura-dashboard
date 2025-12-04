@@ -65,6 +65,9 @@ export const generateStokOutShowPDF = (data: any) => {
   const infoList = [
     ["Tanggal Keluar", formatDate(data.tanggal_keluar)],
     ["PIC", data.pic],
+    ["Nama Project", data.nama_project],
+    ["Lokasi", data.lokasi],
+    ["No SPK", data.no_spk],
     ["Keterangan", data.keterangan || "-"],
   ];
 
@@ -76,11 +79,11 @@ export const generateStokOutShowPDF = (data: any) => {
 
   y += 5;
 
-  // =================== TABEL ===================
- // =================== TABEL ===================
 autoTable(doc, {
   startY: y,
-  head: [["Kode", "Nama Barang", "Merk", "Satuan", "Jumlah", "Harga", "Subtotal", "Keteragan"]],
+  margin: { top: 10, bottom: 25, left: 10, right: 10 },
+  pageBreak: 'auto',
+  head: [["Kode", "Nama Barang", "Merk", "Satuan", "Jumlah", "Harga Satuan", "Subtotal", "Keterangan"]],
   body: data.detailBarang.map((d: any) => [
     d.barang.kode_barang,
     d.barang.nama_barang,
@@ -89,14 +92,8 @@ autoTable(doc, {
     `${d.jumlah} ${d.barang.satuan}`,
     "Rp " + d.harga_keluar.toLocaleString("id-ID"),
     "Rp " + (d.jumlah * d.harga_keluar).toLocaleString("id-ID"),
-
-    // =======================
-    // Distribusi (yang kamu minta)
-    // =======================
-    d.distribusi && d.distribusi.length > 0
-      ? d.distribusi
-          .map((dist: any) => `${dist.nama_gudang} (${dist.jumlah})`)
-          .join("\n")
+    d.distribusi?.length
+      ? d.distribusi.map((dist: any) => `${dist.nama_gudang} (${dist.jumlah})`).join("\n")
       : "-",
   ]),
   theme: "grid",
@@ -105,11 +102,15 @@ autoTable(doc, {
     font: "Times",
     fontSize: 10,
     cellWidth: "wrap",
+    minCellHeight: 6,
   },
   columnStyles: {
-    7: { cellWidth: 40 }, // kolom distribusi diperlebar
+    1: { cellWidth: 60 },
+    7: { cellWidth: 35 },
   },
 });
+
+
 
   // =================== FOOTER ===================
   const pageHeight = doc.internal.pageSize.height;

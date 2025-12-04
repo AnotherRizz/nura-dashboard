@@ -79,6 +79,7 @@ export default function App() {
           <Route path="/barang-masuk/:id" element={<StokInShow />} />
           <Route path="/barang-keluar" element={<StokOutIndex />} />
           <Route path="/barang-keluar/add" element={<StokOutFormPage />} />
+          <Route path="/barang-keluar/edit/:id" element={<StokOutFormPage />} />
           <Route path="/barang-keluar/:id" element={<StokOutShow />} />
           <Route path="/warehouse" element={<WarehouseIndex />} />
           <Route path="/warehouse/:id" element={<WarehouseShow />} />
