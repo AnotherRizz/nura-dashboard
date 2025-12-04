@@ -48,7 +48,7 @@ export default function StokInTable({ data, loading }: any) {
             <BarangTableSkeleton />
           ) : data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-5">
+              <TableCell colSpan={6} className="text-center py-5 dark:text-white/80">
                 Tidak ada data.
               </TableCell>
             </TableRow>

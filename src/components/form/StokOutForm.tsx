@@ -493,8 +493,8 @@ const getRemainingStokForItem = (barangId: number, currentIndex: number) => {
         <h3 className="text-lg font-semibold mb-2">Catatan</h3>
 
         <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-          <li>• Pilih tanggal keluar menggunakan datepicker.</li>
-          <li>• Cari barang dengan mengetik di kolom pencarian.</li>
+          <li>• Barang yang di ambil berdasar stok di beberapa gudang.</li>
+          <li>• Jika barang di gudang A tidak mencukupi maka akan mengambil stok dari gudang lain</li>
           <li>• Jumlah tidak boleh melebihi stok total di semua gudang.</li>
           <li>• Klik tambah item jika ingin menambah barang lain.</li>
           <li>• Klik hapus untuk menghapus baris barang.</li>
