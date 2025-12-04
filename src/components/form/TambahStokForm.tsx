@@ -76,7 +76,11 @@ export default function TambahStokMultiple() {
     fetchData();
   }, []);
 
-  const updateRow = <K extends keyof Row>(index: number, field: K, value: Row[K]) => {
+  const updateRow = <K extends keyof Row>(
+    index: number,
+    field: K,
+    value: Row[K]
+  ) => {
     setRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
     );
@@ -115,7 +119,9 @@ export default function TambahStokMultiple() {
 
     for (const r of rows) {
       if (!r.barangId || !r.jumlah || !r.gudangId)
-        return toast.error("Semua baris harus lengkap! Barang, jumlah & gudang wajib diisi.");
+        return toast.error(
+          "Semua baris harus lengkap! Barang, jumlah & gudang wajib diisi."
+        );
     }
 
     setLoading(true);
@@ -192,15 +198,16 @@ export default function TambahStokMultiple() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <form
         className="space-y-5 p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800"
-        onSubmit={handleSubmit}
-      >
+        onSubmit={handleSubmit}>
         <h2 className="text-lg font-semibold dark:text-teal-400">
           Tambah Stok Barang (Multi)
         </h2>
 
         {/* Keterangan */}
         <div>
-          <label className="text-sm font-semibold dark:text-white/80">Keterangan</label>
+          <label className="text-sm font-semibold dark:text-white/80">
+            Keterangan
+          </label>
           <input
             type="text"
             value={keterangan}
@@ -223,15 +230,18 @@ export default function TambahStokMultiple() {
           return (
             <div
               key={index}
-              className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900 dark:border-gray-700 shadow-sm relative"
-            >
+              className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-900 dark:border-gray-700 shadow-sm relative">
               {/* ================= BARANG SEARCH ================= */}
-              <label className="text-sm font-semibold dark:text-white/80">Barang</label>
+              <label className="text-sm font-semibold dark:text-white/80">
+                Barang
+              </label>
               <input
                 type="text"
-                value={row.nama || row.search}
+                value={row.search}
                 onChange={(e) => {
                   updateRow(index, "search", e.target.value);
+                  updateRow(index, "nama", ""); // reset nama
+                  updateRow(index, "barangId", ""); // reset barang id
                   updateRow(index, "showDropdown", true);
                 }}
                 className="w-full border rounded px-3 py-2 mb-1 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
@@ -250,8 +260,7 @@ export default function TambahStokMultiple() {
                           updateRow(index, "nama", b.nama_barang);
                           updateRow(index, "search", b.nama_barang);
                           updateRow(index, "showDropdown", false);
-                        }}
-                      >
+                        }}>
                         {b.nama_barang}
                       </li>
                     ))
@@ -300,13 +309,14 @@ export default function TambahStokMultiple() {
                           updateRow(index, "gudangNama", g.nama_gudang);
                           updateRow(index, "gudangSearch", g.nama_gudang);
                           updateRow(index, "showGudangDropdown", false);
-                        }}
-                      >
+                        }}>
                         {g.nama_gudang}
                       </li>
                     ))
                   ) : (
-                    <li className="px-3 py-2 text-gray-500">Gudang tidak ditemukan</li>
+                    <li className="px-3 py-2 text-gray-500">
+                      Gudang tidak ditemukan
+                    </li>
                   )}
                 </ul>
               )}
@@ -315,8 +325,7 @@ export default function TambahStokMultiple() {
                 <button
                   type="button"
                   onClick={() => removeRow(index)}
-                  className="absolute top-2 right-2 text-red-500 text-xl"
-                >
+                  className="absolute top-2 right-2 text-red-500 text-xl">
                   ✕
                 </button>
               )}
@@ -328,8 +337,7 @@ export default function TambahStokMultiple() {
         <button
           type="button"
           onClick={addRow}
-          className="px-4 py-2 bg-teal-500 text-white rounded shadow"
-        >
+          className="px-4 py-2 bg-teal-500 text-white rounded shadow">
           + Tambah Baris
         </button>
 
@@ -338,8 +346,7 @@ export default function TambahStokMultiple() {
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow disabled:opacity-50"
-          >
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow disabled:opacity-50">
             {loading ? "Menyimpan..." : "Simpan Semua"}
           </button>
         </div>
@@ -347,10 +354,12 @@ export default function TambahStokMultiple() {
 
       {/* PREVIEW */}
       <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800">
-        <h3 className="text-lg font-semibold mb-3 dark:text-teal-400">Preview</h3>
+        <h3 className="text-lg font-semibold mb-3 dark:text-teal-400">
+          Preview
+        </h3>
 
         <p className="mb-3 dark:text-white">
-          <b>Keterangan:</b> {keterangan || "-"}
+          <b className="">Keterangan:</b> {keterangan || "-"}
         </p>
 
         {rows.map((r, i) => {
@@ -359,20 +368,20 @@ export default function TambahStokMultiple() {
           return (
             <div key={i} className="border-b dark:border-gray-700 pb-3 mb-3">
               <p className="dark:text-white">
-                <b>Barang:</b> {r.nama || "-"}
+                <b className="">Barang:</b> {r.nama || "-"}
               </p>
               <p className="dark:text-white">
-                <b>Jumlah:</b> {r.jumlah || "-"}
+                <b className="">Jumlah:</b> {r.jumlah || "-"}
               </p>
               <p className="dark:text-white">
-                <b>Gudang:</b> {r.gudangNama || "-"}
+                <b className="">Gudang:</b> {r.gudangNama || "-"}
               </p>
               <p className="dark:text-white">
-                <b>Harga Per Item:</b>{" "}
+                <b className="">Harga Per Item:</b>{" "}
                 {barang ? barang.harga.toLocaleString() : "-"}
               </p>
               <p className="dark:text-white">
-                <b>Total Harga:</b>{" "}
+                <b className="">Total Harga:</b>{" "}
                 {barang && r.jumlah
                   ? (barang.harga * parseInt(r.jumlah)).toLocaleString()
                   : "-"}
