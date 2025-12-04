@@ -59,20 +59,21 @@ export default function StokOutForm({
       });
     }
   }, []);
-  const [formData, setFormData] = useState<FormDataType>({
-    tanggal_keluar: "",
-    pic: "",
-    keterangan: "",
-    nama_project: "",
-    lokasi: "",
-    no_spk: "",
-    items: [],
-    ...initialValues,
-  });
+const [formData, setFormData] = useState<FormDataType>({
+  tanggal_keluar: "",
+  pic: "",
+  keterangan: "",
+  nama_project: "",
+  lokasi: "",
+  no_spk: "",
+  items: initialValues?.items ?? [],
+  ...initialValues,
+});
+
 
   useEffect(() => {
-    if (initialValues) {
-      const withOld = initialValues.items.map((item: any) => ({
+    if (initialValues?.items) {
+  const withOld = initialValues.items.map((item: any) => ({
         ...item,
         jumlah_lama: item.jumlah, // simpan jumlah lama (penting!)
       }));
