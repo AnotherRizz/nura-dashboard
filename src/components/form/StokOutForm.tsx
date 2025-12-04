@@ -104,7 +104,7 @@ const getRemainingStokForItem = (barangId: number, currentIndex: number) => {
   const getGudangList = (barangId: number) => {
     return stokGudang
       .filter((s) => s.barang_id === barangId)
-      .map((s) => `${s.gudang?.nama_gudang || "-"} (${s.stok})`)
+      .map((s) => `${s.gudang?.nama_gudang || "-"} (${s.stok} ${getBarang(barangId)?.satuan || ""})`)
       .join(", ");
   };
 
