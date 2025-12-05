@@ -4,10 +4,10 @@ import { useNavigate, useParams } from "react-router";
 import BarangForm from "../../components/form/BarangForm";
 import TambahStokForm from "../../components/form/TambahStokForm";
 import { supabase } from "../../services/supabaseClient";
-import {
-  FolderPlusIcon,
-  InboxArrowDownIcon,
-} from "@heroicons/react/24/outline";
+// import {
+//   FolderPlusIcon,
+//   InboxArrowDownIcon,
+// } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import UploadExcelBarang from "../../components/form/UploadExcelBarang";
 
@@ -33,7 +33,7 @@ export default function BarangFormPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<TabKey>("barang-baru");
+  const [activeTab, _setActiveTab] = useState<TabKey>("barang-baru");
   const [initialData, setInitialData] = useState<InitialBarangData | undefined>(undefined);
   const [loadingInitial, setLoadingInitial] = useState<boolean>(false);
 
@@ -174,30 +174,7 @@ export default function BarangFormPage() {
         </h1>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-3 mb-6 border-b pb-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("barang-baru")}
-          className={`px-4 py-2 rounded-t-lg font-semibold flex items-center ${
-            activeTab === "barang-baru"
-              ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
-              : " dark:bg-gray-800 dark:text-gray-300"
-          }`}>
-          <FolderPlusIcon className="w-5 h-5" /> Barang Baru
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("tambah-stok")}
-          className={`px-4 py-2 rounded-t-lg font-semibold flex items-center ${
-            activeTab === "tambah-stok"
-              ? "bg-white dark:bg-gray-800 text-blue-500 border-b border-blue-500"
-              : " dark:bg-gray-800 dark:text-gray-300"
-          }`}>
-          <InboxArrowDownIcon className="w-5 h-5" /> Tambah Stok
-        </button>
-      </div>
+     
 
       <div>
         {activeTab === "barang-baru" ? (

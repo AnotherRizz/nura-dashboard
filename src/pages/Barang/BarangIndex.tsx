@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import BarangTable from "../../components/tables/BarangTable";
-import Button from "../../components/ui/button/Button";
-import { useNavigate } from "react-router";
+// import Button from "../../components/ui/button/Button";
+// import { useNavigate } from "react-router";
 import Pagination from "../../components/tables/Pagination";
 import { supabase } from "../../services/supabaseClient";
 import BarangDetailSidebar from "../../components/common/BarangDetailSidebar";
@@ -28,7 +28,7 @@ export default function BarangIndex() {
 
   const limit = 10;
 
-  const navigate = useNavigate();
+  // const _navigate = useNavigate();
 
   const openDetail = (barang: any) => {
     setSelectedBarang(barang);
@@ -212,12 +212,12 @@ export default function BarangIndex() {
           </div>
 
           {/* Tombol tambah barang */}
-          <Button
+          {/* <Button
             size="sm"
             className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl"
             onClick={() => navigate("/barang/add")}>
             Tambah Barang
-          </Button>
+          </Button> */}
         </div>
 
         <BarangTable

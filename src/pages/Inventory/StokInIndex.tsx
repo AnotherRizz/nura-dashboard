@@ -224,7 +224,7 @@ export default function StokInIndex() {
           size="sm"
           className="bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 
                text-white rounded-xl px-5 h-11 mt-2 shadow-md"
-          onClick={() => navigate("/barang/add")}>
+          onClick={() => navigate("/barang-masuk/add")}>
           Tambah Barang Masuk
         </Button>
       </div>
