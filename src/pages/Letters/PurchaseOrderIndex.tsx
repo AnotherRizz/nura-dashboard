@@ -5,9 +5,10 @@ import Button from "../../components/ui/button/Button";
 import Pagination from "../../components/tables/Pagination";
 import { supabase } from "../../services/supabaseClient";
 import { useNavigate } from "react-router";
-import StokInTable from "../../components/tables/StokInTable";
+import PurchaseOrderTable from "../../components/tables/PurchaseOrderTable";
+// import { exportPurchaseOrderPDF } from "../../services/exportPurchaseOrderPDF";
 
-export default function StokInIndex() {
+export default function PurchaseOrderIndex() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,53 +27,64 @@ export default function StokInIndex() {
     totalPages: 1,
   });
 
-  const navigate = useNavigate();
   const limit = 10;
+  const navigate = useNavigate();
 
+  // -------------------------------------------------
+  // FETCH DATA
+  // -------------------------------------------------
   const fetchData = async () => {
     setLoading(true);
 
-   let query = supabase
-  .from("BarangMasuk")
-  .select(
-    `
-      id,
-      tanggal_masuk,
-      keterangan,
-      gudang:gudang (
+    let query = supabase
+      .from("purchase_order")
+      .select(
+        `
         id,
-        nama_gudang
-      ),
-      detail:DetailBarangMasuk (
-        jumlah,
-        harga_masuk,
-        barang:Barang ( nama_barang )
-      )
-    `,
-    { count: "exact" }
-  
-
+        no_po,
+        tanggal,
+        supplier:Supplier (
+          id,
+          nama_supplier
+        ),
+        detail:detail_purchase_order (
+          id_barang,
+          jumlah,
+          harga_satuan,
+          subtotal,
+          barang:Barang ( nama_barang )
+        ),
+        keterangan,
+        status
+      `,
+        { count: "exact" }
       )
       .order("id", { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 
+    // Search by no_po / keterangan
     if (debouncedSearch) {
-      query = query.ilike("keterangan", `%${debouncedSearch}%`);
+      query = query.or(
+        `no_po.ilike.%${debouncedSearch}%,keterangan.ilike.%${debouncedSearch}%`
+      );
     }
 
+    // Filter by year & month
     if (year && month) {
       const start = `${year}-${month}-01`;
       const end = `${year}-${month}-31`;
-      query = query.gte("tanggal_masuk", start).lte("tanggal_masuk", end);
+      query = query.gte("tanggal", start).lte("tanggal", end);
     }
 
+    // Filter only by year
     if (year && !month) {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      query = query.gte("tanggal_masuk", start).lte("tanggal_masuk", end);
+      query = query.gte("tanggal", start).lte("tanggal", end);
     }
 
     const { data, error, count } = await query;
+
     if (error) console.error(error);
 
     const formatted = data?.map((item) => ({
@@ -82,7 +94,7 @@ export default function StokInIndex() {
         0
       ),
       total_harga: item.detail.reduce(
-        (acc: number, d: any) => acc + d.harga_masuk * d.jumlah,
+        (acc: number, d: any) => acc + d.subtotal,
         0
       ),
     }));
@@ -98,39 +110,41 @@ export default function StokInIndex() {
     setLoading(false);
   };
 
+  // -------------------------------------------------
+  // DEBOUNCE INPUT SEARCH
+  // -------------------------------------------------
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
     }, 500);
-
     return () => clearTimeout(t);
   }, [search]);
 
+  // Trigger fetch on page, search, month, year changes
   useEffect(() => {
     fetchData();
   }, [page, debouncedSearch, month, year]);
 
   return (
     <div>
-      <PageMeta title="Barang Masuk" description="Data Barang Masuk" />
-      <PageBreadcrumb pageTitle="Barang Masuk" />
+      <PageMeta title="Purchase Order" description="Data Purchase Order" />
+      <PageBreadcrumb pageTitle="Purchase Order" />
 
-      <div className="flex flex-wrap items-center gap-4 p-4 bg-white dark:bg-gray-900  ">
-        {/* Filter Bulan */}
+      {/* FILTER & SEARCH BAR */}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-white dark:bg-gray-900">
+
+        {/* Filter bulan */}
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">
-            Bulan
-          </label>
+          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">Bulan</label>
           <select
             value={month}
             onChange={(e) => {
               setMonth(e.target.value);
               setPage(1);
             }}
-            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white/90
-                 rounded-lg px-3 h-11 text-sm focus:border-blue-500 focus:ring-2 
-                 focus:ring-blue-400/30 transition">
+            className="border dark:bg-gray-900 dark:text-white/90 border-gray-300 rounded-lg px-3 h-11 text-sm"
+          >
             <option value="">Semua Bulan</option>
             <option value="01">Januari</option>
             <option value="02">Februari</option>
@@ -147,25 +161,22 @@ export default function StokInIndex() {
           </select>
         </div>
 
-        {/* Filter Tahun */}
+        {/* Filter tahun */}
         <div className="flex flex-col">
-          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">
-            Tahun
-          </label>
+          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">Tahun</label>
           <select
             value={year}
             onChange={(e) => {
               setYear(e.target.value);
               setPage(1);
             }}
-            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white/90
-                 rounded-lg px-3 h-11 text-sm focus:border-blue-500 focus:ring-2 
-                 focus:ring-blue-400/30 transition">
+            className="border dark:bg-gray-900 dark:text-white/90 border-gray-300 rounded-lg px-3 h-11 text-sm"
+          >
             <option value="">Semua Tahun</option>
             {Array.from({ length: 6 }).map((_, i) => {
               const y = 2020 + i;
               return (
-                <option value={y} key={y}>
+                <option key={y} value={y}>
                   {y}
                 </option>
               );
@@ -173,44 +184,31 @@ export default function StokInIndex() {
           </select>
         </div>
 
-        {/* Search Bar */}
-        <div className="hidden lg:block flex-1 min-w-[250px]">
-          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">
-            Pencarian
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <svg
-                className="fill-gray-500 dark:fill-gray-400"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20">
-                <path d="M3.04175..."></path>
-              </svg>
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari Data Barang Masuk..."
-              className="dark:bg-dark-900 bg-gray-50 border dark:bg-gray-900 dark:text-white/90 border-gray-300 dark:border-gray-700 
-                   h-11 w-full rounded-lg py-2.5 pl-12 pr-14 text-sm 
-                   shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/30 
-                   transition"
-            />
-          </div>
+        {/* Search */}
+        <div className="flex-1 min-w-[250px]">
+          <label className="text-xs text-gray-600 dark:text-gray-300 mb-1">Pencarian</label>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari No PO / Keterangan..."
+            className="w-full h-11 px-4 rounded-lg border dark:bg-gray-900 dark:text-white/90 border-gray-300"
+          />
         </div>
-        {/* Button */}
+
+
+        {/* Add PO */}
         <Button
           size="sm"
-          className="bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 
-               text-white rounded-xl px-5 h-11 mt-2 shadow-md"
-          onClick={() => navigate("/barang-masuk/add")}>
-          Tambah Barang Masuk
+          className="bg-blue-600 text-white rounded-xl px-5 h-11"
+          onClick={() => navigate("/purchase-order/add")}
+        >
+          Tambah PO
         </Button>
       </div>
 
-      <div className="">
-        <StokInTable data={data} loading={loading} />
+      {/* TABLE */}
+      <div>
+        <PurchaseOrderTable data={data} loading={loading} />
 
         {meta.totalPages > 1 && (
           <Pagination

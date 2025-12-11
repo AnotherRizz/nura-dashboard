@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 
 interface Barang {
-  supplier_id: any;
-  id_kategori: string;
   id: string;
   nama_barang: string;
-  harga: number;
-  merk: string;
-  tipe: string;
-  satuan: string;
-  serial_number: string;
+  harga?: number;
+  merk?: string;
+  tipe?: string;
+  satuan?: string;
+  serial_number?: string;
+  id_kategori?: string;
+  supplier_id?: string;
 }
 
 interface Gudang {
@@ -40,17 +40,9 @@ interface Row {
   tipe: string;
   satuan: string;
 
-  // Gudang
-  gudangId: string;
-  gudangSearch: string;
-  gudangNama: string;
-  showGudangDropdown: boolean;
-
-  // Barang search
   search: string;
   showDropdown: boolean;
 
-  // NEW
   kategoriId: string;
   kategoriSearch: string;
   showKategoriDropdown: boolean;
@@ -59,7 +51,7 @@ interface Row {
   supplierSearch: string;
   showSupplierDropdown: boolean;
 
-  harga: string; // optional
+  harga: string;
 }
 
 export default function TambahStokForm() {
@@ -68,6 +60,16 @@ export default function TambahStokForm() {
   const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
   const [supplierList, setSupplierList] = useState<Supplier[]>([]);
 
+  // header gudang (dipilih sekali untuk semua baris)
+  const [selectedGudangId, setSelectedGudangId] = useState<string>("");
+  const [selectedGudangSearch, setSelectedGudangSearch] = useState<string>("");
+  const [showGudangDropdown, setShowGudangDropdown] = useState(false);
+
+  // PO
+  const [poList, setPoList] = useState<any[]>([]);
+  const [poSearch, setPoSearch] = useState("");
+  const [poDropdown, setPoDropdown] = useState(false);
+
   const initialRow = (): Row => ({
     barangId: "",
     nama: "",
@@ -75,11 +77,6 @@ export default function TambahStokForm() {
     merk: "",
     tipe: "",
     satuan: "",
-
-    gudangId: "",
-    gudangNama: "",
-    gudangSearch: "",
-    showGudangDropdown: false,
 
     search: "",
     showDropdown: false,
@@ -103,110 +100,175 @@ export default function TambahStokForm() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: barang } = await supabase
-        .from("Barang")
-        .select(
-          "id,nama_barang,harga, merk, tipe, satuan, serial_number, id_kategori, supplier_id"
-        )
-        .order("nama_barang");
+      try {
+        const [
+          barangRes,
+          kategoriRes,
+          supplierRes,
+          gudangRes,
+          poRes,
+        ] = await Promise.all([
+          supabase
+            .from("Barang")
+            .select(
+              "id,nama_barang,harga,merk,tipe,satuan,serial_number,id_kategori,supplier_id"
+            )
+            .order("nama_barang"),
+          supabase.from("Kategori").select("id,nama_kategori").order("nama_kategori"),
+          supabase.from("Supplier").select("id,nama_supplier").order("nama_supplier"),
+          supabase.from("gudang").select("id,nama_gudang").order("nama_gudang"),
+          supabase.from("purchase_order").select("id,no_po,gudang_id").order("no_po"),
+        ]);
 
-      const { data: kategori } = await supabase
-        .from("Kategori")
-        .select("id,nama_kategori")
-        .order("nama_kategori");
-
-      const { data: supplier } = await supabase
-        .from("Supplier")
-        .select("id,nama_supplier")
-        .order("nama_supplier");
-
-      const { data: gudang } = await supabase
-        .from("gudang")
-        .select("id,nama_gudang")
-        .order("nama_gudang");
-
-      setBarangList((barang as any) || []);
-      setKategoriList((kategori as any) || []);
-      setSupplierList((supplier as any) || []);
-      setGudangList((gudang as any) || []);
+        setBarangList((barangRes.data as any) || []);
+        setKategoriList((kategoriRes.data as any) || []);
+        setSupplierList((supplierRes.data as any) || []);
+        setGudangList((gudangRes.data as any) || []);
+        setPoList((poRes.data as any) || []);
+      } catch (err) {
+        console.error("fetch master data error", err);
+        toast.error("Gagal memuat data master");
+      }
     };
 
     fetchData();
   }, []);
 
-  const updateRow = <K extends keyof Row>(
-    index: number,
-    field: K,
-    value: Row[K]
-  ) => {
-    setRows((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
-    );
+  const updateRow = <K extends keyof Row>(index: number, field: K, value: Row[K]) => {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
   };
 
-  const addRow = () => {
-    setRows((prev) => [...prev, initialRow()]);
-  };
+  const addRow = () => setRows((prev) => [...prev, initialRow()]);
 
   const removeRow = (index: number) => {
     if (rows.length === 1) return;
     setRows((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ======================= SUBMIT =========================
+  // when user selects a PO: set header gudang and populate rows from PO details
+  const handleSelectPO = async (poId: string, nomorPO: string) => {
+    setPoSearch(nomorPO);
+    setPoDropdown(false);
 
+    try {
+      const { data: poDetail, error: poErr } = await supabase
+        .from("purchase_order")
+        .select("id,gudang_id,keterangan")
+        .eq("id", poId)
+        .single();
+
+      if (poErr || !poDetail) throw poErr || new Error("PO not found");
+
+      const gudangIdFromPO = poDetail.gudang_id;
+      const gudangPO = gudangList.find((g) => g.id === gudangIdFromPO);
+      // set header gudang
+      setSelectedGudangId(gudangIdFromPO || "");
+      setSelectedGudangSearch(gudangPO?.nama_gudang || "");
+
+      // fetch details
+      const { data: details, error } = await supabase
+        .from("detail_purchase_order")
+        .select(
+          `
+          id_barang,
+          jumlah,
+          harga_satuan,
+          Barang (
+            id,
+            nama_barang,
+            merk,
+            tipe,
+            satuan,
+            id_kategori,
+            supplier_id,
+            harga
+          )
+        `
+        )
+        .eq("purchase_order_id", poId);
+
+      if (error) throw error;
+      if (!details || details.length === 0) {
+        toast.error("PO tidak memiliki detail barang");
+        return;
+      }
+
+      const newRows: Row[] = details.map((d: any) => ({
+        barangId: d.id_barang,
+        nama: d.Barang?.nama_barang || "",
+        search: d.Barang?.nama_barang || "",
+        jumlah: d.jumlah?.toString() || "",
+        merk: d.Barang?.merk || "",
+        tipe: d.Barang?.tipe || "",
+        satuan: d.Barang?.satuan || "",
+        harga: d.harga_satuan ? d.harga_satuan.toString() : (d.Barang?.harga ? d.Barang.harga.toString() : ""),
+
+        kategoriId: d.Barang?.id_kategori || "",
+        kategoriSearch:
+          kategoriList.find((k) => k.id === d.Barang?.id_kategori)?.nama_kategori || "",
+        showKategoriDropdown: false,
+
+        supplierId: d.Barang?.supplier_id || "",
+        supplierSearch:
+          supplierList.find((s) => s.id === d.Barang?.supplier_id)?.nama_supplier || "",
+        showSupplierDropdown: false,
+
+        showDropdown: false,
+      }));
+
+      setRows(newRows);
+      toast.success("Data PO berhasil dimuat (dan gudang header otomatis terisi)");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengambil data PO / detail");
+    }
+  };
+
+  // submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // validation
     if (!keterangan.trim()) return toast.error("Keterangan harus diisi!");
+    if (!selectedGudangId) return toast.error("Pilih gudang di bagian header!");
 
-    // validasi: setiap baris harus punya barangId atau search (nama baru), jumlah, gudangId
     for (const r of rows) {
-      if ((!r.barangId && !r.search) || !r.jumlah || !r.gudangId) {
-        return toast.error(
-          "Semua baris harus lengkap! Pilih barang atau ketik nama baru, isi jumlah & pilih gudang."
-        );
+      if ((!r.barangId && !r.search) || !r.jumlah) {
+        return toast.error("Semua baris harus lengkap! Pilih barang atau ketik nama baru & isi jumlah.");
       }
     }
 
     setLoading(true);
-
     try {
-      // Insert BarangMasuk
+      // insert BarangMasuk with gudang_id
       const { data: masuk, error: masukErr } = await supabase
         .from("BarangMasuk")
         .insert({
           tanggal_masuk: new Date().toISOString(),
           keterangan,
+          gudang_id: selectedGudangId,
         })
         .select()
         .single();
 
       if (masukErr) throw masukErr;
 
-      // Map to track newly created barang per row index
+      // map for newly created barang (when user types new name)
       const createdBarangByIndex: Record<number, string> = {};
 
-      // First: create barang baru for rows that have a typed name but no barangId
+      // create missing barang first
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-
-        // if user already selected existing barang, skip creation
         if (r.barangId) continue;
 
-        // try find by exact name (case insensitive) in existing barangList
         const found = barangList.find(
-          (b) =>
-            b.nama_barang.trim().toLowerCase() === r.search.trim().toLowerCase()
+          (b) => b.nama_barang.trim().toLowerCase() === r.search.trim().toLowerCase()
         );
-
         if (found) {
-          // map it so we can use its id later
           createdBarangByIndex[i] = found.id;
           continue;
         }
 
-        // create new barang
         const { data: newBarang, error: barangErr } = await supabase
           .from("Barang")
           .insert({
@@ -223,13 +285,11 @@ export default function TambahStokForm() {
           .single();
 
         if (barangErr) throw barangErr;
-
-        // add to map and also update local barangList so UI remains consistent for subsequent operations
         createdBarangByIndex[i] = (newBarang as any).id;
         setBarangList((prev) => [...prev, newBarang as any]);
       }
 
-      // Prepare detail insert and update stok
+      // prepare bulk insert detail
       const detailInsert: {
         id_barang_masuk: string;
         id_barang: string;
@@ -239,18 +299,13 @@ export default function TambahStokForm() {
 
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-
-        const barangIdToUse = r.barangId || createdBarangByIndex[i] || "";
-
-        // find harga: priority -> row.harga -> barangList.harga -> 0
+        const barangIdToUse = r.barangId || createdBarangByIndex[i];
+        const jumlahInt = parseInt(r.jumlah || "0", 10);
         const barangObj = barangList.find((b) => b.id === barangIdToUse);
-        const hargaPerItem = r.harga
-          ? Number(r.harga)
-          : barangObj
-          ? barangObj.harga
-          : 0;
+        const hargaPerItem = r.harga ? Number(r.harga) : barangObj ? barangObj.harga || 0 : 0;
 
-        const jumlahInt = parseInt(r.jumlah);
+        if (!barangIdToUse) continue;
+        if (!jumlahInt || jumlahInt <= 0) continue;
 
         detailInsert.push({
           id_barang_masuk: (masuk as any).id,
@@ -259,12 +314,12 @@ export default function TambahStokForm() {
           harga_masuk: hargaPerItem,
         });
 
-        // update stok_gudang
+        // update stok_gudang using header gudang
         const { data: existing } = await supabase
           .from("stok_gudang")
           .select("*")
           .eq("barang_id", barangIdToUse)
-          .eq("gudang_id", r.gudangId)
+          .eq("gudang_id", selectedGudangId)
           .maybeSingle();
 
         if (existing) {
@@ -275,17 +330,14 @@ export default function TambahStokForm() {
         } else {
           await supabase.from("stok_gudang").insert({
             barang_id: barangIdToUse,
-            gudang_id: r.gudangId,
+            gudang_id: selectedGudangId,
             stok: jumlahInt,
           });
         }
       }
 
-      // bulk insert detail
       if (detailInsert.length > 0) {
-        const { error: dtErr } = await supabase
-          .from("DetailBarangMasuk")
-          .insert(detailInsert);
+        const { error: dtErr } = await supabase.from("DetailBarangMasuk").insert(detailInsert);
         if (dtErr) throw dtErr;
       }
 
@@ -293,28 +345,61 @@ export default function TambahStokForm() {
       navigate("/barang-masuk");
     } catch (err) {
       console.error(err);
-      toast.error("Gagal menyimpan");
+      toast.error("Gagal menyimpan. Cek console.");
     } finally {
       setLoading(false);
     }
   };
 
-  // =====================================================
-
   return (
-    <div className="grid grid-cols-1  gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <form
         className="space-y-6 p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800"
-        onSubmit={handleSubmit}>
-        <h2 className="text-lg font-semibold dark:text-teal-400">
-          Tambah Stok Barang (Multi)
-        </h2>
+        onSubmit={handleSubmit}
+      >
+        <h2 className="text-lg font-semibold dark:text-teal-400">Tambah Stok Barang (Multi)</h2>
 
-        {/* ================= KETERANGAN ================= */}
+        {/* PO */}
+        <div className="relative">
+          <label className="text-sm font-semibold dark:text-white/80">Cari Nomor PO</label>
+          <input
+            type="text"
+            value={poSearch}
+            onChange={(e) => {
+              setPoSearch(e.target.value);
+              setPoDropdown(true);
+            }}
+            placeholder="Cari PO..."
+            className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          />
+
+          {poDropdown && (
+            <ul className="absolute mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 w-full rounded shadow max-h-60 overflow-y-auto z-30">
+              {poList
+                .filter((p) => p.no_po?.toLowerCase().includes(poSearch.toLowerCase()))
+                .map((p) => (
+                 <li
+  key={p.id}
+  className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+  onClick={() => handleSelectPO(p.id, p.no_po)}
+>
+  <div className="font-semibold">{p.no_po}</div>
+  <div className="text-sm text-gray-600 dark:text-gray-400">
+    {p.keterangan || "Tanpa keterangan"}
+  </div>
+  <div className="text-xs text-gray-500 dark:text-gray-500">
+    Gudang: {gudangList.find((g) => g.id === p.gudang_id)?.nama_gudang || "-"}
+  </div>
+</li>
+
+                ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Keterangan */}
         <div>
-          <label className="text-sm font-semibold dark:text-white/80">
-            Keterangan
-          </label>
+          <label className="text-sm font-semibold dark:text-white/80">Keterangan</label>
           <input
             type="text"
             value={keterangan}
@@ -324,47 +409,70 @@ export default function TambahStokForm() {
           />
         </div>
 
-        {/* ================= BARIS BARANG LOOP ================= */}
+        {/* GUDANG HEADER */}
+        <div className="relative">
+          <label className="text-sm font-semibold dark:text-white/80">Pilih Gudang</label>
+          <input
+            type="text"
+            value={selectedGudangSearch}
+            onChange={(e) => {
+              setSelectedGudangSearch(e.target.value);
+              setShowGudangDropdown(true);
+            }}
+            placeholder="Cari gudang..."
+            className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          />
+
+          {showGudangDropdown && (
+            <ul className="absolute mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 w-full rounded shadow max-h-60 overflow-y-auto z-30">
+              {gudangList
+                .filter((g) => g.nama_gudang.toLowerCase().includes(selectedGudangSearch.toLowerCase()))
+                .map((g) => (
+                  <li
+                    key={g.id}
+                    className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                    onClick={() => {
+                      setSelectedGudangId(g.id);
+                      setSelectedGudangSearch(g.nama_gudang);
+                      setShowGudangDropdown(false);
+                    }}
+                  >
+                    {g.nama_gudang}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+
+        {/* BARIS BARANG */}
         {rows.map((row, index) => {
           const filteredBarang = barangList.filter((b) =>
             b.nama_barang.toLowerCase().includes(row.search.toLowerCase())
           );
 
-          const filteredGudang = gudangList.filter((g) =>
-            g.nama_gudang.toLowerCase().includes(row.gudangSearch.toLowerCase())
-          );
-
           const filteredKategori = kategoriList.filter((k) =>
-            k.nama_kategori
-              .toLowerCase()
-              .includes(row.kategoriSearch.toLowerCase())
+            k.nama_kategori.toLowerCase().includes(row.kategoriSearch.toLowerCase())
           );
 
           const filteredSupplier = supplierList.filter((s) =>
-            s.nama_supplier
-              .toLowerCase()
-              .includes(row.supplierSearch.toLowerCase())
+            s.nama_supplier.toLowerCase().includes(row.supplierSearch.toLowerCase())
           );
 
           return (
-            <div
-              key={index}
-              className="relative p-5 rounded-xl border bg-gray-50 dark:bg-gray-900 dark:border-gray-700 shadow-sm space-y-4">
-              {/* btn remove */}
+            <div key={index} className="relative p-5 rounded-xl border bg-gray-50 dark:bg-gray-900 dark:border-gray-700 shadow-sm space-y-4">
               {rows.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeRow(index)}
-                  className="absolute top-3 right-3 text-red-500 text-xl hover:text-red-600">
+                  className="absolute top-3 right-3 text-red-500 text-xl hover:text-red-600"
+                >
                   ✕
                 </button>
               )}
 
-              {/* ============ FIELD: BARANG SEARCH ============ */}
+              {/* Barang search */}
               <div className="relative">
-                <label className="text-sm font-semibold dark:text-white/80">
-                  Barang
-                </label>
+                <label className="text-sm font-semibold dark:text-white/80">Barang</label>
                 <input
                   type="text"
                   value={row.search}
@@ -373,11 +481,7 @@ export default function TambahStokForm() {
                     updateRow(index, "search", val);
                     updateRow(index, "nama", "");
                     updateRow(index, "barangId", "");
-
-                    const hasMatch = barangList.some((b) =>
-                      b.nama_barang.toLowerCase().includes(val.toLowerCase())
-                    );
-                    updateRow(index, "showDropdown", hasMatch);
+                    updateRow(index, "showDropdown", true);
                   }}
                   className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                   placeholder="Cari barang atau ketik nama baru..."
@@ -396,64 +500,43 @@ export default function TambahStokForm() {
                             updateRow(index, "search", b.nama_barang);
                             updateRow(index, "showDropdown", false);
 
-                            // === AUTO FILL FIELD LAIN ===
+                            // auto-fill
                             updateRow(index, "merk", b.merk || "");
                             updateRow(index, "tipe", b.tipe || "");
                             updateRow(index, "satuan", b.satuan || "");
-                            updateRow(
-                              index,
-                              "harga",
-                              b.harga?.toString() || ""
-                            );
-
-                            // Jika barang punya kategori / supplier
+                            updateRow(index, "harga", b.harga ? b.harga.toString() : "");
+                            // kategori & supplier auto-fill
                             if (b.id_kategori) {
-                              const kat = kategoriList.find(
-                                (k) => k.id === b.id_kategori
-                              );
+                              const kat = kategoriList.find((k) => k.id === b.id_kategori);
                               if (kat) {
                                 updateRow(index, "kategoriId", kat.id);
-                                updateRow(
-                                  index,
-                                  "kategoriSearch",
-                                  kat.nama_kategori
-                                );
+                                updateRow(index, "kategoriSearch", kat.nama_kategori);
                               }
                             }
-
                             if (b.supplier_id) {
-                              const sup = supplierList.find(
-                                (s) => s.id === b.supplier_id
-                              );
+                              const sup = supplierList.find((s) => s.id === b.supplier_id);
                               if (sup) {
                                 updateRow(index, "supplierId", sup.id);
-                                updateRow(
-                                  index,
-                                  "supplierSearch",
-                                  sup.nama_supplier
-                                );
+                                updateRow(index, "supplierSearch", sup.nama_supplier);
                               }
                             }
-                          }}>
+                          }}
+                        >
                           {b.nama_barang}
                         </li>
                       ))
                     ) : (
-                      <li className="px-3 py-2 text-gray-500">
-                        Tidak ditemukan — akan dibuat otomatis
-                      </li>
+                      <li className="px-3 py-2 text-gray-500">Tidak ditemukan — akan dibuat otomatis</li>
                     )}
                   </ul>
                 )}
               </div>
 
-              {/* ============ FIELD: KATEGORI - SUPPLIER - MERK - TIPE - SATUAN - HARGA ============ */}
+              {/* Kategori/Supplier/Merk/Tipe/Satuan/Harga grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Kategori */}
                 <div className="relative">
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Kategori
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Kategori</label>
                   <input
                     type="text"
                     value={row.kategoriSearch}
@@ -473,20 +556,15 @@ export default function TambahStokForm() {
                             className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer dark:text-white"
                             onClick={() => {
                               updateRow(index, "kategoriId", k.id);
-                              updateRow(
-                                index,
-                                "kategoriSearch",
-                                k.nama_kategori
-                              );
+                              updateRow(index, "kategoriSearch", k.nama_kategori);
                               updateRow(index, "showKategoriDropdown", false);
-                            }}>
+                            }}
+                          >
                             {k.nama_kategori}
                           </li>
                         ))
                       ) : (
-                        <li className="px-3 py-2 text-gray-500">
-                          Tidak ditemukan
-                        </li>
+                        <li className="px-3 py-2 text-gray-500">Tidak ditemukan</li>
                       )}
                     </ul>
                   )}
@@ -494,9 +572,7 @@ export default function TambahStokForm() {
 
                 {/* Supplier */}
                 <div className="relative">
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Supplier
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Supplier</label>
                   <input
                     type="text"
                     value={row.supplierSearch}
@@ -516,20 +592,15 @@ export default function TambahStokForm() {
                             className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer dark:text-white"
                             onClick={() => {
                               updateRow(index, "supplierId", s.id);
-                              updateRow(
-                                index,
-                                "supplierSearch",
-                                s.nama_supplier
-                              );
+                              updateRow(index, "supplierSearch", s.nama_supplier);
                               updateRow(index, "showSupplierDropdown", false);
-                            }}>
+                            }}
+                          >
                             {s.nama_supplier}
                           </li>
                         ))
                       ) : (
-                        <li className="px-3 py-2 text-gray-500">
-                          Tidak ditemukan
-                        </li>
+                        <li className="px-3 py-2 text-gray-500">Tidak ditemukan</li>
                       )}
                     </ul>
                   )}
@@ -537,15 +608,11 @@ export default function TambahStokForm() {
 
                 {/* Merk */}
                 <div>
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Merk
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Merk</label>
                   <input
                     type="text"
-                    value={(row as any).merk || ""}
-                    onChange={(e) =>
-                      updateRow(index, "merk" as any, e.target.value)
-                    }
+                    value={row.merk || ""}
+                    onChange={(e) => updateRow(index, "merk", e.target.value)}
                     className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                     placeholder="Samsung / LG / Asus"
                   />
@@ -553,15 +620,11 @@ export default function TambahStokForm() {
 
                 {/* Tipe */}
                 <div>
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Tipe
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Tipe</label>
                   <input
                     type="text"
-                    value={(row as any).tipe || ""}
-                    onChange={(e) =>
-                      updateRow(index, "tipe" as any, e.target.value)
-                    }
+                    value={row.tipe || ""}
+                    onChange={(e) => updateRow(index, "tipe", e.target.value)}
                     className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                     placeholder="A23 / Pro Max"
                   />
@@ -569,15 +632,11 @@ export default function TambahStokForm() {
 
                 {/* Satuan */}
                 <div>
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Satuan
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Satuan</label>
                   <input
                     type="text"
-                    value={(row as any).satuan || ""}
-                    onChange={(e) =>
-                      updateRow(index, "satuan" as any, e.target.value)
-                    }
+                    value={row.satuan || ""}
+                    onChange={(e) => updateRow(index, "satuan", e.target.value)}
                     className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                     placeholder="pcs / unit / box"
                   />
@@ -585,9 +644,7 @@ export default function TambahStokForm() {
 
                 {/* Harga */}
                 <div>
-                  <label className="text-sm font-semibold dark:text-white/80">
-                    Harga / Item
-                  </label>
+                  <label className="text-sm font-semibold dark:text-white/80">Harga / Item</label>
                   <input
                     type="number"
                     value={row.harga}
@@ -598,11 +655,9 @@ export default function TambahStokForm() {
                 </div>
               </div>
 
-              {/* ============ FIELD: JUMLAH ============ */}
+              {/* Jumlah */}
               <div>
-                <label className="text-sm font-semibold dark:text-white/80">
-                  Jumlah
-                </label>
+                <label className="text-sm font-semibold dark:text-white/80">Jumlah</label>
                 <input
                   type="number"
                   value={row.jumlah}
@@ -610,65 +665,20 @@ export default function TambahStokForm() {
                   className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                 />
               </div>
-
-              {/* ============ FIELD: GUDANG ============ */}
-              <div className="relative">
-                <label className="text-sm font-semibold dark:text-white/80">
-                  Gudang
-                </label>
-                <input
-                  type="text"
-                  value={row.gudangNama || row.gudangSearch}
-                  onChange={(e) => {
-                    updateRow(index, "gudangSearch", e.target.value);
-                    updateRow(index, "showGudangDropdown", true);
-                  }}
-                  placeholder="Cari gudang..."
-                  className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                />
-
-                {row.showGudangDropdown && (
-                  <ul className="absolute mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 w-full max-h-48 overflow-y-auto rounded shadow z-20">
-                    {filteredGudang.length > 0 ? (
-                      filteredGudang.map((g) => (
-                        <li
-                          key={g.id}
-                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer dark:text-white"
-                          onClick={() => {
-                            updateRow(index, "gudangId", g.id);
-                            updateRow(index, "gudangNama", g.nama_gudang);
-                            updateRow(index, "gudangSearch", g.nama_gudang);
-                            updateRow(index, "showGudangDropdown", false);
-                          }}>
-                          {g.nama_gudang}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-3 py-2 text-gray-500">
-                        Gudang tidak ditemukan
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </div>
             </div>
           );
         })}
 
-        {/* ============ BUTTON: ADD ROW ============ */}
-        <button
-          type="button"
-          onClick={addRow}
-          className="px-4 py-2 bg-teal-500 text-white rounded-md shadow hover:bg-teal-600">
+        <button type="button" onClick={addRow} className="px-4 py-2 bg-teal-500 text-white rounded-md shadow hover:bg-teal-600">
           + Tambah Baris
         </button>
 
-        {/* ============ SUBMIT ============ */}
         <div className="flex justify-end pt-3">
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow disabled:opacity-50">
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow disabled:opacity-50"
+          >
             {loading ? "Menyimpan..." : "Simpan Semua"}
           </button>
         </div>
@@ -676,12 +686,13 @@ export default function TambahStokForm() {
 
       {/* PREVIEW */}
       <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow border dark:border-gray-800">
-        <h3 className="text-lg font-semibold mb-3 dark:text-teal-400">
-          Preview
-        </h3>
+        <h3 className="text-lg font-semibold mb-3 dark:text-teal-400">Preview</h3>
 
         <p className="mb-3 dark:text-white">
-          <b className="">Keterangan:</b> {keterangan || "-"}
+          <b>Keterangan:</b> {keterangan || "-"}
+        </p>
+        <p className="mb-3 dark:text-white">
+        <p className="dark:text-white"><b>Gudang:</b> {selectedGudangSearch || "-"}</p>
         </p>
 
         {rows.map((r, i) => {
@@ -689,30 +700,11 @@ export default function TambahStokForm() {
 
           return (
             <div key={i} className="border-b dark:border-gray-700 pb-3 mb-3">
-              <p className="dark:text-white">
-                <b className="">Barang:</b> {r.nama || r.search || "-"}
-              </p>
-              <p className="dark:text-white">
-                <b className="">Jumlah:</b> {r.jumlah || "-"}
-              </p>
-              <p className="dark:text-white">
-                <b className="">Gudang:</b> {r.gudangNama || "-"}
-              </p>
-              <p className="dark:text-white">
-                <b className="">Harga Per Item:</b>{" "}
-                {r.harga
-                  ? Number(r.harga).toLocaleString()
-                  : barang
-                  ? barang.harga.toLocaleString()
-                  : "-"}
-              </p>
-              <p className="dark:text-white">
-                <b className="">Total Harga:</b>{" "}
-                {(
-                  (r.harga ? Number(r.harga) : barang ? barang.harga : 0) *
-                  (r.jumlah ? parseInt(r.jumlah) : 0)
-                ).toLocaleString()}
-              </p>
+              <p className="dark:text-white"><b>Barang:</b> {r.nama || r.search || "-"}</p>
+              <p className="dark:text-white"><b>Jumlah:</b> {r.jumlah || "-"}</p>
+              
+              <p className="dark:text-white"><b>Harga Per Item:</b> {r.harga ? Number(r.harga).toLocaleString() : barang ? (barang.harga || 0).toLocaleString() : "-"}</p>
+              <p className="dark:text-white"><b>Total Harga:</b> {(((r.harga ? Number(r.harga) : barang ? (barang.harga || 0) : 0) * (r.jumlah ? parseInt(r.jumlah) : 0))).toLocaleString()}</p>
             </div>
           );
         })}

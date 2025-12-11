@@ -47,6 +47,9 @@ import DashboardInventory from "./pages/Dashboard/DashboardInventory";
 import WarehouseIndex from "./pages/Inventory/WarehouseIndex";
 import WarehouseShow from "./pages/Inventory/WarehouseShow";
 import TambahStokForm from "./components/form/TambahStokForm";
+import PurchaseOrderIndex from "./pages/Letters/PurchaseOrderIndex";
+import PurchaseOrderForm from "./components/form/PurchaseOrderForm";
+import PurchaseOrderShow from "./pages/Letters/PurchaseOrderShow";
 // import GuidePage from "./pages/guide/guidePage";
 
 export default function App() {
@@ -85,6 +88,12 @@ export default function App() {
           <Route path="/barang-keluar/:id" element={<StokOutShow />} />
           <Route path="/warehouse" element={<WarehouseIndex />} />
           <Route path="/warehouse/:id" element={<WarehouseShow />} />
+
+          {/* letters */}
+          <Route path="/purchase-order" element={<PurchaseOrderIndex />} />
+          <Route path="/purchase-order/add" element={<PurchaseOrderForm />} />
+          <Route path="/purchase-order/:id" element={<PurchaseOrderShow />} />
+          <Route path="/purchase-order/edit/:id" element={<PurchaseOrderForm />} />
 
          
 

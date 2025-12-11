@@ -33,11 +33,11 @@ export default function StokInTable({ data, loading }: any) {
             <TableCell   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">Tanggal</TableCell>
             <TableCell   isHeader
+                className="px-5 py-4 text-start dark:text-white sm:px-6">Gudang</TableCell>
+            <TableCell   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">Keterangan</TableCell>
             <TableCell   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">Total Item</TableCell>
-            <TableCell   isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">Total Harga</TableCell>
             <TableCell   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">Aksi</TableCell>
           </TableRow>
@@ -57,15 +57,9 @@ export default function StokInTable({ data, loading }: any) {
               <TableRow key={item.id}>
                 <TableCell  className="px-4 py-3 dark:text-white/80">{index + 1}</TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">{formatTanggalWaktu(item.tanggal_masuk)}</TableCell>
+                <TableCell  className="px-4 py-3 dark:text-white/80">{item.gudang?.nama_gudang}</TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">{item.keterangan}</TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">{item.total_item}</TableCell>
-                <TableCell  className="px-4 py-3 dark:text-white/80">
-                  {item.total_harga.toLocaleString("id-ID", {
-                    style: "currency",
-                    currency: "IDR",
-                    minimumFractionDigits: 0,
-                  })}
-                </TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">
                   <button
                     onClick={() => navigate(`/barang-masuk/${item.id}`)}

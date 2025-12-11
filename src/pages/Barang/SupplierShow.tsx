@@ -4,13 +4,13 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import Button from "../../components/ui/button/Button";
 import { BoxCubeIcon, UserIcon } from "../../icons";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHeader,
+//   TableRow,
+// } from "../../components/ui/table";
 import { supabase } from "../../services/supabaseClient";
 
 interface Barang {
@@ -81,7 +81,6 @@ export default function SupplierShow() {
             id,
             nama_barang,
             kode_barang,
-            stok,
             harga,
             satuan,
             tipe,
@@ -190,7 +189,7 @@ export default function SupplierShow() {
         </div>
 
         {/* Daftar Barang */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-lg p-8 dark:border-gray-800 dark:bg-white/[0.03]">
+        {/* <div className="rounded-2xl border border-gray-200 bg-white shadow-lg p-8 dark:border-gray-800 dark:bg-white/[0.03]">
           <h2 className="text-2xl flex gap-2 font-bold text-gray-800 dark:text-white/90 mb-6">
             <BoxCubeIcon /> Daftar Barang
           </h2>
@@ -236,7 +235,7 @@ export default function SupplierShow() {
               Supplier ini belum memiliki barang.
             </p>
           )}
-        </div>
+        </div> */}
 
         {/* Tombol Aksi */}
         <div className="mt-10 flex justify-end gap-2">

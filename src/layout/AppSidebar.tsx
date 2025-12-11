@@ -18,6 +18,7 @@ import {
   HomeModernIcon,
   DocumentTextIcon,
   RectangleStackIcon,
+  EnvelopeOpenIcon,
 } from "@heroicons/react/24/outline";
 
 type NavItem = {
@@ -29,7 +30,6 @@ type NavItem = {
 type MenuType = "main" | "others" | "general";
 
 const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
-
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
 
@@ -37,17 +37,17 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
     type: MenuType;
     index: number;
   } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
+    {}
+  );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  
 
   // ==============================
   // 🔹 DEFINISI MENU UTAMA
   // ==============================
   const navItems: NavItem[] = [
     // { icon: <GridIcon />, name: "Dashboard", path: "/" },
-     {
+    {
       name: "Dashboard Overview",
       icon: <GridIcon />,
       subItems: [
@@ -55,7 +55,7 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
         { name: "Dashboard Monitoring", path: "/" },
       ],
     },
-       {
+    {
       name: "Master Data",
       icon: <BoxCubeIcon />,
       subItems: [
@@ -64,27 +64,34 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
         { name: "Kategori", path: "/kategori" },
       ],
     },
-       {
+    {
       name: "Inventory",
       icon: <RectangleStackIcon />,
       subItems: [
-       
-        { name: "Warehouse", path: "/warehouse"},
-        { name: "Stok In", path: "/barang-masuk"},
+        { name: "Warehouse", path: "/warehouse" },
+        { name: "Stok In", path: "/barang-masuk" },
         { name: "Stok Out", path: "/barang-keluar" },
       ],
     },
-       {
+    {
       name: "Mikrotik",
       icon: <ServerStackIcon />,
       subItems: [
-        { name: "Devices", path: "/device"},
-        {name: "Monitoring", path: "/monitoring"  },
+        { name: "Devices", path: "/device" },
+        { name: "Monitoring", path: "/monitoring" },
       ],
     },
-      {
+    {
+      name: "Letters",
+      icon: <EnvelopeOpenIcon />,
+      subItems: [
+        { name: "Purchase Order", path: "/purchase-order" },
+
+      ],
+    },
+    {
       name: "Summary",
-      icon:  <DocumentTextIcon />,
+      icon: <DocumentTextIcon />,
       subItems: [
         { name: "Log Device", path: "/log", pro: true },
         { name: "Summary", path: "/summary" },
@@ -95,21 +102,24 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   ];
 
   const generalItems: NavItem[] = [
-  //  {
-  //     name: "Data Barang",
-  //     icon: <BoxCubeIcon />,
-  //     subItems: [
-  //       { name: "Barang", path: "/barang", pro: true },
-  //       { name: "Supplier", path: "/supplier" },
-  //       { name: "Kategori", path: "/kategori" },
-  //     ],
-  //   },
+    //  {
+    //     name: "Data Barang",
+    //     icon: <BoxCubeIcon />,
+    //     subItems: [
+    //       { name: "Barang", path: "/barang", pro: true },
+    //       { name: "Supplier", path: "/supplier" },
+    //       { name: "Kategori", path: "/kategori" },
+    //     ],
+    //   },
   ];
 
   const othersItems: NavItem[] = [
-     
     { icon: <BoltIcon />, name: "Paket Internet", path: "/paket" },
-    { icon: <UserPlusIcon />, name: "User Registration", path: "/registrasi-user" },
+    {
+      icon: <UserPlusIcon />,
+      name: "User Registration",
+      path: "/registrasi-user",
+    },
     { icon: <UserGroupIcon />, name: "Account List", path: "/users" },
     { icon: <Cog6ToothIcon />, name: "Settings", path: "/profile" },
   ];
@@ -118,55 +128,52 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   let filteredGeneralItems = generalItems;
   let filteredOthersItems = othersItems;
 
- // ================================
-// ROLE FILTERING
-// ================================
+  // ================================
+  // ROLE FILTERING
+  // ================================
 
-// Default semua kosong
-filteredNavItems = [];
-filteredGeneralItems = [];
-filteredOthersItems = [];
-
-if (role === "admin") {
-  // 🔹 Admin bisa semua
-  filteredNavItems = navItems;
-  filteredGeneralItems = generalItems;
-  filteredOthersItems = othersItems;
-
-} else if (role === "noc") {
-  // 🔹 NOC hanya Devices, Monitoring, Barang, Summary
-
-  filteredNavItems = navItems.filter((item) =>
-    ["Dashboard Overview",'Inventory',"Mikrotik", "Summary", "Master Data","Side Area"].includes(item.name)
-  );
-
-  filteredGeneralItems = [];     // tidak perlu
-  filteredOthersItems = [];      // noc tidak perlu paket, regis, akun
-
-} else if (role === "cs") {
-  // 🔹 CS hanya Paket dan User Registrasi
-
-  filteredNavItems = []; // CS tidak perlu main menu
+  // Default semua kosong
+  filteredNavItems = [];
   filteredGeneralItems = [];
-  filteredOthersItems = othersItems.filter((item) =>
-    ["Paket Internet", "User Registration"].includes(item.name)
-  );
+  filteredOthersItems = [];
 
-} else if (role === "user") {
-  // 🔹 User biasa hanya dashboard + barang
+  if (role === "admin") {
+    // 🔹 Admin bisa semua
+    filteredNavItems = navItems;
+    filteredGeneralItems = generalItems;
+    filteredOthersItems = othersItems;
+  } else if (role === "noc") {
+    // 🔹 NOC hanya Devices, Monitoring, Barang, Summary
 
-  filteredNavItems = navItems.filter((item) =>
-    ["Dashboard"].includes(item.name)
-  );
+    filteredNavItems = navItems.filter((item) =>
+      ["Dashboard Overview", "Inventory", "Letters", "Master Data"].includes(
+        item.name
+      )
+    );
 
-  filteredGeneralItems = generalItems.filter((item) =>
-    ["Data Barang"].includes(item.name)
-  );
+    filteredGeneralItems = []; // tidak perlu
+    filteredOthersItems = []; // noc tidak perlu paket, regis, akun
+  } else if (role === "cs") {
+    // 🔹 CS hanya Paket dan User Registrasi
 
-  filteredOthersItems = []; // tidak perlu paket & user regis
-}
+    filteredNavItems = []; // CS tidak perlu main menu
+    filteredGeneralItems = [];
+    filteredOthersItems = othersItems.filter((item) =>
+      ["Paket Internet", "User Registration"].includes(item.name)
+    );
+  } else if (role === "user") {
+    // 🔹 User biasa hanya dashboard + barang
 
+    filteredNavItems = navItems.filter((item) =>
+      ["Dashboard"].includes(item.name)
+    );
 
+    filteredGeneralItems = generalItems.filter((item) =>
+      ["Data Barang"].includes(item.name)
+    );
+
+    filteredOthersItems = []; // tidak perlu paket & user regis
+  }
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
@@ -236,15 +243,13 @@ if (role === "admin") {
                 !isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "lg:justify-start"
-              }`}
-            >
+              }`}>
               <span
                 className={`menu-item-icon-size ${
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
-                }`}
-              >
+                }`}>
                 {nav.icon}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
@@ -267,15 +272,13 @@ if (role === "admin") {
                 to={nav.path}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
+                }`}>
                 <span
                   className={`menu-item-icon-size ${
                     isActive(nav.path)
                       ? "menu-item-icon-active"
                       : "menu-item-icon-inactive"
-                  }`}
-                >
+                  }`}>
                   {nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
@@ -296,8 +299,7 @@ if (role === "admin") {
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? `${subMenuHeight[`${menuType}-${index}`]}px`
                     : "0px",
-              }}
-            >
+              }}>
               <ul className="mt-2 space-y-1 ml-9">
                 {nav.subItems.map((subItem) => (
                   <li key={subItem.name}>
@@ -307,8 +309,7 @@ if (role === "admin") {
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
-                      }`}
-                    >
+                      }`}>
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
@@ -317,8 +318,7 @@ if (role === "admin") {
                               isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
+                            } menu-dropdown-badge`}>
                             new
                           </span>
                         )}
@@ -328,8 +328,7 @@ if (role === "admin") {
                               isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
+                            } menu-dropdown-badge`}>
                             Main
                           </span>
                         )}
@@ -361,14 +360,12 @@ if (role === "admin") {
       ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
       lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+      onMouseLeave={() => setIsHovered(false)}>
       {/* Logo */}
       <div
         className={`py-8 flex ${
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
+        }`}>
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <div className="flex items-center">
@@ -393,8 +390,7 @@ if (role === "admin") {
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                }`}
-              >
+                }`}>
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Main Menu"
                 ) : (
@@ -411,8 +407,7 @@ if (role === "admin") {
                     !isExpanded && !isHovered
                       ? "lg:justify-center"
                       : "justify-start"
-                  }`}
-                >
+                  }`}>
                   {isExpanded || isHovered || isMobileOpen ? (
                     "General"
                   ) : (
@@ -430,8 +425,7 @@ if (role === "admin") {
                     !isExpanded && !isHovered
                       ? "lg:justify-center"
                       : "justify-start"
-                  }`}
-                >
+                  }`}>
                   {isExpanded || isHovered || isMobileOpen ? (
                     "Others"
                   ) : (
