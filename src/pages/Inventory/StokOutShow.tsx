@@ -25,6 +25,11 @@ interface DetailBarang {
     jumlah: number;
     nama_gudang: string;
   }>;
+  serial_number: {
+    id: string;
+    sn: string;
+    status: string;
+  }[];
   barang: {
     kode_barang: string;
     nama_barang: string;
@@ -33,6 +38,7 @@ interface DetailBarang {
     tipe: string;
   };
 }
+
 
 interface BarangKeluar {
   id: string;
@@ -55,35 +61,39 @@ export default function StokOutShow() {
   const [openPreview, setOpenPreview] = useState(false);
 
   const fetchData = async () => {
-    const { data, error } = await supabase
-      .from("barang_keluar")
-      .select(
-        `
+  const { data, error } = await supabase
+  .from("barang_keluar")
+  .select(`
+    id,
+    tanggal_keluar,
+    pic,
+    nama_project,
+    lokasi,
+    no_spk,
+    keterangan,
+    detailBarang:detail_barang_keluar (
       id,
-      tanggal_keluar,
-      pic,
-      nama_project,
-      lokasi,
-      no_spk,
-      keterangan,
-      detailBarang:detail_barang_keluar (
+      id_barang,
+      jumlah,
+      harga_keluar,
+      distribusi,
+      serial_number:serial_number!inner (
         id,
-        id_barang,
-        jumlah,
-        harga_keluar,
-        distribusi,
-        barang:Barang (
-          kode_barang,
-          nama_barang,
-          satuan,
-          merk,
-          tipe
-        )
+        sn,
+        status
+      ),
+      barang:Barang (
+        kode_barang,
+        nama_barang,
+        satuan,
+        merk,
+        tipe
       )
-    `
-      )
-      .eq("id", id)
-      .single();
+    )
+  `)
+  .eq("id", id)
+  .single();
+
 
     if (error) console.error(error);
 
@@ -239,6 +249,12 @@ export default function StokOutShow() {
                   Jumlah
                 </TableCell>
                 <TableCell
+  isHeader
+  className="px-5 py-4 text-start dark:text-white">
+  Serial Number
+</TableCell>
+
+                <TableCell
                   isHeader
                   className="px-5 py-4 text-start dark:text-white">
                   Harga Keluar
@@ -280,6 +296,26 @@ export default function StokOutShow() {
                     <TableCell className="px-4 py-3 dark:text-white/80">
                       {d.jumlah} {d.barang.satuan}
                     </TableCell>
+                    <TableCell className="px-4 py-3 dark:text-white/80">
+  {d.serial_number && d.serial_number.length > 0 ? (
+    <div className="flex flex-wrap gap-1">
+      {d.serial_number.map((sn) => (
+        <span
+          key={sn.id}
+          className="
+            px-2 py-0.5 text-sm rounded-full
+            bg-gray-400/30 text-gray-600
+            line-through italic
+          ">
+          {sn.sn}
+        </span>
+      ))}
+    </div>
+  ) : (
+    "-"
+  )}
+</TableCell>
+
                     <TableCell className="px-4 py-3 dark:text-white/80">
                       Rp {d.harga_keluar.toLocaleString("id-ID")}
                     </TableCell>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router";
 import { supabase } from "../../services/supabaseClient";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import PurchaseOrderPreview from "./purchaseOrderPreview";
 
 interface Detail {
   id: string;
@@ -16,12 +17,19 @@ interface Detail {
   };
 }
 
+interface DPResult {
+  dpPercent: number;
+}
+
 export default function PurchaseOrderShow() {
+  const printRef = useRef<HTMLDivElement>(null);
+
   const { id } = useParams();
 
   const [data, setData] = useState<any>(null);
   const [details, setDetails] = useState<Detail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -36,7 +44,7 @@ export default function PurchaseOrderShow() {
       .select(
         `
           *,
-          supplier:supplier_id (nama_supplier, telp_pic),
+          supplier:supplier_id (nama_supplier, nama_pic),
           gudang:gudang_id (nama_gudang,lokasi)
         `
       )
@@ -68,16 +76,53 @@ export default function PurchaseOrderShow() {
   const subtotal = details.reduce((sum, d) => sum + d.subtotal, 0);
   const ppn = Math.round(subtotal * 0.11);
   const total = subtotal + ppn;
-  const dp = Math.round(total * 0.1);
-  const sisa = total - dp;
+  const termDP = getDPFromTerms(data.ketentuan);
+
+  let dp = 0;
+  let sisa = 0;
+
+  if (termDP) {
+    dp = Math.round((termDP.dpPercent / 100) * total);
+    sisa = total - dp;
+  } else {
+    dp = Math.round(total * 0.1);
+    sisa = total - dp;
+  }
+
+  function getDPFromTerms(terms?: string[]): DPResult | null {
+    if (!Array.isArray(terms)) return null;
+
+    const findLunas = terms.find((t) => t.toLowerCase().includes("lunas"));
+    if (findLunas) {
+      return { dpPercent: 100 };
+    }
+
+    for (const t of terms) {
+      const match = t.match(/dp\s*([0-9]+)\s*%/i);
+      if (match) {
+        return { dpPercent: parseInt(match[1], 10) };
+      }
+    }
+
+    return null;
+  }
+  const totalRows = details.length > 0 ? details.length : 1;
 
   return (
     <div className="p-1 max-w-4xl mx-auto ">
       <PageBreadcrumb pageTitle="Purchase Order Detail" />
 
-      <section className="border border-gray-500 rounded shadow bg-white p-10">
-        <div className="flex flex-col gap-5 text-sm mb-6">
-          <div>
+      <section
+        ref={printRef}
+        id="po-print"
+        style={{
+          fontFamily: '"Times New Roman", Times, serif',
+          color: "#000",
+          lineHeight: "1.35",
+        }}
+        className="bg-white shadow px-10 pt-20 pb-10 max-w-3xl">
+        <div className="flex po-page flex-col gap-3 mt-20 text-sm mb-2">
+          <div className="text-sm">
             Tangerang Selatan,{" "}
             {new Date(data.tanggal).toLocaleDateString("id-ID", {
               day: "2-digit",
@@ -85,20 +130,23 @@ export default function PurchaseOrderShow() {
               year: "numeric",
             })}
             <br />
-            <b> No: <span className="underline">{data.no_po}</span></b>
-          
+            <b>
+              {" "}
+              No: <span className="underline">{data.no_po}</span>
+            </b>
           </div>
 
-          <div className="">
+          <div className="text-sm">
             Kepada Yth,
             <b>
-            <br />
-            {data.supplier.nama_supplier}
-            <br />
-            Up. {data.supplier.telp_pic || "-"}</b>
+              <br />
+              {data.supplier.nama_supplier}
+              <br />
+              Up.Bpk/Ibu {data.supplier.nama_pic || "-"}
+            </b>
           </div>
-          <div className="">
-            <b>Dengan hormat,</b>
+          <div className="text-xs">
+            <b className="text-sm">Dengan hormat,</b>
             <br />
             Sehubungan dengan Pelaksanaan Pekerjaan PT. Linea Global Teknologi,
             <br />
@@ -108,132 +156,201 @@ export default function PurchaseOrderShow() {
         </div>
 
         {/* TABEL DETAIL */}
-        <table className="w-full border text-sm">
+        <table className="po-table w-full border border-black border-collapse text-[12px] mt-4">
           <thead>
-            <tr className="bg-gray-200">
-              <th className="border px-2 py-1 w-10">No</th>
-              <th className="border px-2 py-1">Designator</th>
-              <th className="border px-2 py-1 w-20">Satuan</th>
-              <th className="border px-2 py-1 w-20">Volume</th>
-              <th className="border px-2 py-1 w-28">Harga Satuan</th>
-              <th className="border px-2 py-1 w-32">Jumlah Harga</th>
-              <th className="border px-2 py-1 w-40">Keterangan</th>
+            <tr className="font-semibold text-center">
+              <th className="border border-black w-[35px]">No</th>
+              <th className="border border-black">Designator</th>
+              <th className="border border-black w-[60px]">Satuan</th>
+              <th className="border border-black w-[70px]">Volume</th>
+              <th className="border border-black w-[110px]">
+                Harga Satuan
+                <br />
+                Rp.
+              </th>
+              <th className="border border-black w-[120px]">
+                Jumlah Harga
+                <br />
+                Rp.
+              </th>
+              <th className="border border-black w-[140px]">Keterangan</th>
             </tr>
           </thead>
 
           <tbody>
+            {/* BARIS ITEM */}
             {details.map((d, i) => (
               <tr key={d.id}>
-                <td className="border px-2 py-1 text-center">{i + 1}</td>
-                <td className="border px-2 py-1">{d.barang.nama_barang}</td>
-                <td className="border px-2 py-1 text-center">
+                <td className="border border-black text-center">{i + 1}</td>
+                <td className="border border-black px-2">
+                  {d.barang.nama_barang}
+                </td>
+                <td className="border border-black text-center">
                   {d.barang.satuan}
                 </td>
-                <td className="border px-2 py-1 text-right">
+                <td className="border border-black text-center">
                   {d.jumlah.toLocaleString("id-ID")}
                 </td>
-                <td className="border px-2 py-1 text-right">
-                  Rp {d.harga_satuan.toLocaleString("id-ID")}
+                <td className="border border-black text-right px-2">
+                  {d.harga_satuan.toLocaleString("id-ID")}
                 </td>
-                <td className="border px-2 py-1 text-right">
-                  Rp {d.subtotal.toLocaleString("id-ID")}
+                <td className="border border-black text-right px-2">
+                  {d.subtotal.toLocaleString("id-ID")}
                 </td>
-                {/* KETERANGAN HANYA TAMPIL DI BARIS PERTAMA */}
-                {i === 0 ? (
+
+                {/* KETERANGAN (ROWSPAN SEKALI SAJA) */}
+                {i === 0 && (
                   <td
-                    className="border px-2 py-1 text-left align-top"
-                    rowSpan={details.length}>
+                    rowSpan={totalRows}
+                    className="border border-black align-top px-2">
                     {data.keterangan}
                   </td>
-                ) : null}
+                )}
               </tr>
             ))}
 
-            {/* RINGKASAN */}
+            {/* JUMLAH */}
             <tr>
               <td
                 colSpan={5}
-                className="border px-2 py-1 text-right font-semibold">
+                className="border border-black text-right px-2 font-semibold">
                 Jumlah
               </td>
-              <td className="border px-2 py-1 text-right">
-                Rp {subtotal.toLocaleString("id-ID")}
+              <td className="border border-black text-right px-2 font-semibold">
+                {subtotal.toLocaleString("id-ID")}
               </td>
-              <td className="border"></td>
             </tr>
 
+            {/* PPN */}
+            <tr>
+              <td colSpan={5} className="border border-black text-right px-2">
+                PPN 11%
+              </td>
+              <td className="border border-black text-right px-2">
+                {ppn.toLocaleString("id-ID")}
+              </td>
+            </tr>
+
+            {/* TOTAL */}
             <tr>
               <td
                 colSpan={5}
-                className="border px-2 py-1 text-right font-semibold">
-                PPN 11%
+                className="border border-black text-right px-2 font-semibold">
+                Total
               </td>
-              <td className="border px-2 py-1 text-right">
-                Rp {ppn.toLocaleString("id-ID")}
+              <td className="border border-black text-right px-2 font-semibold">
+                {total.toLocaleString("id-ID")}
               </td>
-              <td className="border"></td>
-            </tr>
-
-            <tr className="bg-gray-100 font-bold">
-              <td colSpan={5} className="border px-2 py-1 text-right">
-                TOTAL
-              </td>
-              <td className="border px-2 py-1 text-right">
-                Rp {total.toLocaleString("id-ID")}
-              </td>
-              <td className="border"></td>
             </tr>
           </tbody>
         </table>
 
-        {/* DP / SISA */}
-        <div className="flex justify-end mt-3">
-          <table className="text-sm">
-            <tbody>
-              <tr>
-                <td className="px-2 py-1">DP 10%</td>
-                <td className="px-2 py-1 text-right">
-                  Rp {dp.toLocaleString("id-ID")}
-                </td>
-              </tr>
-              <tr>
-                <td className="px-2 py-1">Sisa Pembayaran</td>
-                <td className="px-2 py-1 text-right font-semibold">
-                  Rp {sisa.toLocaleString("id-ID")}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div className=" grid grid-cols-5  ">
+          {/* INFORMASI LAIN */}
+          <div className=" text-xs col-span-3  ">
+            <b>Syarat dan Ketentuan:</b>
+
+            {Array.isArray(data.ketentuan) && data.ketentuan.length > 0 ? (
+              data.ketentuan.map((item: string, idx: number) => (
+                <div key={idx}>- {item}</div>
+              ))
+            ) : (
+              <div>- Tidak ada ketentuan</div>
+            )}
+          </div>
+          {/* DP / SISA */}
+          <div className="mt-1 col-span-2 ">
+            <table className="text-sm ">
+              <tbody>
+                {/* JENIS PEMBAYARAN */}
+                <tr>
+                  <td className="px-2 py-1 text-[12px]">
+                    Pembayaran{" "}
+                    {termDP?.dpPercent === 100
+                      ? "Dibayar Lunas"
+                      : termDP
+                      ? `DP ${termDP.dpPercent}%`
+                      : "DP 10%"}
+                  </td>
+                  <td className="px-2 py-1 text-[12px] text-right">
+                    Rp {dp.toLocaleString("id-ID")}
+                  </td>
+                </tr>
+
+                {/* SISA */}
+                <tr className="font-semibold -mt-10">
+                  <td className="px-2 py-1 text-[12px] -mt-7">
+                    Sisa Pembayaran
+                  </td>
+                  <td className="px-2 py-1 text-[12px] text-right">
+                    Rp {sisa.toLocaleString("id-ID")}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* INFORMASI LAIN */}
-        <div className="-mt-12 text-sm">
-          <b>Syarat dan Ketentuan:</b>
-          <br />- DP 10%
-          <br />- Sisa Pembayaran 60 Hari Cover Giro
-        </div>
-        <div className="mt-6 text-sm">
+        <div className="mt-6 text-xs">
           <b>Contact Person:</b>
           <br />- Heri: 0812-8737-6372
           <br />- Iqbal: 0895-2009-7832
           <br />- Gita: 0881-0818-80699
         </div>
-        <div className="mt-6 text-sm">
+        <div className="mt-3 text-xs">
           <b>Pengiriman Material:</b>
           <br />- {data.gudang?.nama_gudang || "-"}({data.gudang?.lokasi || "-"}
           )
         </div>
 
-        <div className="text-sm mt-8">
+        <div className="text-xs mt-3">
           Demikian Purchase Order ini Kami sampaikan, atas perhatian dan kerja
           samanya diucapkan terima.
         </div>
-        <div className="text-sm mt-8">
+        <div className="text-sm mt-3">
           Hormat kami,
           <br />
           <b>PT. LINEA GLOBAL TEKNOLOGI</b>
         </div>
+        <div className="text-xs mt-10">
+          <br />
+          <b>Bintang Aryo Dharmawan</b>
+          <br />
+          Direktur
+        </div>
+        <div className="text-xs mt-3 mb-20">
+          Catatan:
+          <br />
+          Apabila barang yang di Order/PO tidak sesuai dengn Speck, maka akan
+          dikembalikan dan biaya-biaya yang <br />
+          timbul akan dibebankan kepada Pabrik
+        </div>
       </section>
+    <button
+  onClick={() => setPreview(true)}
+  className="px-4 py-2 bg-blue-600 text-white rounded"
+>
+  Preview PDF
+</button>
+
+{preview && (
+  <PurchaseOrderPreview
+    onClose={() => setPreview(false)}
+    data={data}
+    details={details}
+    subtotal={subtotal}
+    ppn={ppn}
+    total={total}
+    dp={dp}
+    sisa={sisa}
+    termLabel={
+      termDP?.dpPercent === 100
+        ? "DP 100%"
+        : `DP ${termDP?.dpPercent ?? 10}%`
+    }
+  />
+)}
+
     </div>
   );
 }

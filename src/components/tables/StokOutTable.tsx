@@ -65,7 +65,7 @@ export default function StokOutTable({ data, loading }: any) {
               <TableCell
                 isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Aksi
+                {""}
               </TableCell>
             </TableRow>
           </TableHeader>

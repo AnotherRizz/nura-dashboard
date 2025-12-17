@@ -6,10 +6,10 @@ import Pagination from "../../components/tables/Pagination";
 import { supabase } from "../../services/supabaseClient";
 import { useNavigate } from "react-router";
 import StokOutTable from "../../components/tables/StokOutTable";
-import {
-  exportAllPDF,
-  exportFilteredPDF,
-} from "../../services/exportStokOutPDF";
+// import {
+//   exportAllPDF,
+//   exportFilteredPDF,
+// } from "../../services/exportStokOutPDF";
 
 export default function StokOutIndex() {
   const [data, setData] = useState<any[]>([]);
@@ -22,7 +22,7 @@ export default function StokOutIndex() {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
 
-  const [isExporting, setIsExporting] = useState(false);
+  // const [isExporting, setIsExporting] = useState(false);
 
   const [meta, setMeta] = useState({
     total: 0,
@@ -119,28 +119,28 @@ export default function StokOutIndex() {
     fetchData();
   }, [page, debouncedSearch, month, year]);
 
-  const handleExport = async () => {
-    if (!data || data.length === 0) return;
+  // const handleExport = async () => {
+  //   if (!data || data.length === 0) return;
 
-    setIsExporting(true);
+  //   setIsExporting(true);
 
-    try {
-      const isFiltered = month || year || search;
+  //   try {
+  //     const isFiltered = month || year || search;
 
-      if (!isFiltered) {
-        await exportAllPDF(data);
-      } else {
-        const filterName = `${year || "all-year"}-${month || "all-month"}-${
-          search || "no-search"
-        }`;
-        await exportFilteredPDF(data, filterName);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  //     if (!isFiltered) {
+  //       await exportAllPDF(data);
+  //     } else {
+  //       const filterName = `${year || "all-year"}-${month || "all-month"}-${
+  //         search || "no-search"
+  //       }`;
+  //       await exportFilteredPDF(data, filterName);
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
 
-    setIsExporting(false);
-  };
+  //   setIsExporting(false);
+  // };
 
   return (
     <div>
@@ -217,7 +217,7 @@ export default function StokOutIndex() {
 
     <div className="flex items-center gap-3">
 
-  <Button
+  {/* <Button
     size="sm"
     disabled={isExporting || !data?.length}
     className={`rounded-xl px-5 h-11 shadow-md text-white 
@@ -226,12 +226,12 @@ export default function StokOutIndex() {
     onClick={handleExport}
   >
     {isExporting ? "Memproses..." : "Export PDF"}
-  </Button>
+  </Button> */}
 
   <Button
     size="sm"
     className="bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r 
-               from-blue-600 via-cyan-600 to-teal-600 
+               from-blue-600 via-cyan-600 to-teal-600  mt-4
                text-white rounded-xl px-5 h-11 shadow-md"
     onClick={() => navigate("/barang-keluar/add")}
   >

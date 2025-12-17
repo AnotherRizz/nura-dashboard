@@ -199,7 +199,7 @@ export default function PurchaseOrderIndex() {
         {/* Add PO */}
         <Button
           size="sm"
-          className="bg-blue-600 text-white rounded-xl px-5 h-11"
+          className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 mt-4 text-white rounded-xl px-5 h-11"
           onClick={() => navigate("/purchase-order/add")}
         >
           Tambah PO

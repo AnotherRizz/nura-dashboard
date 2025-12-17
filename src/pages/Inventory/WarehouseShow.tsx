@@ -30,11 +30,15 @@ interface Barang {
   stok: number;
   satuan: string;
   harga: number;
+  // serial_number?: string[];
+  serial_number: {
+    id: string;
+    sn: string;
+    status: string;
+  }[];
   kategori?: { nama_kategori: string };
   supplier?: { nama_supplier: string };
 }
-
-
 
 export default function WarehouseShow() {
   const { id } = useParams<{ id: string }>();
@@ -72,18 +76,24 @@ export default function WarehouseShow() {
         .from("stok_gudang")
         .select(
           `
+  id,
+  stok,
+serial_number:serial_number!serial_number_stok_gudang_id_fkey (
+  id,
+  sn,
+  status
+),
+
+  barang:barang_id (
     id,
-    stok,
-    barang:barang_id (
-      id,
-      nama_barang,
-      kode_barang,
-      satuan,
-      harga,
-      kategori:Kategori (nama_kategori),
-      supplier:Supplier (nama_supplier)
-    )
-  `
+    nama_barang,
+    kode_barang,
+    satuan,
+    harga,
+    kategori:Kategori (nama_kategori),
+    supplier:Supplier (nama_supplier)
+  )
+`
         )
         .eq("gudang_id", id);
 
@@ -94,11 +104,12 @@ export default function WarehouseShow() {
         id: item.barang.id,
         nama_barang: item.barang.nama_barang,
         kode_barang: item.barang.kode_barang,
-        stok: item.stok, // ← stok asli dari stok_gudang
+        stok: item.stok,
         satuan: item.barang.satuan,
         harga: item.barang.harga,
         kategori: item.barang.kategori,
         supplier: item.barang.supplier,
+        serial_number: item.serial_number || [],
       }));
 
       setBarangList(mapped);
@@ -114,45 +125,61 @@ export default function WarehouseShow() {
     }
   };
 
-  const fetchBarangMasuk = async () => {
-    const { data, error } = await supabase
-      .from("DetailBarangMasuk") // ✅ HARUS SAMA PERSIS DENGAN DB
-      .select(
-        `
+const fetchBarangMasuk = async () => {
+  const { data, error } = await supabase
+    .from("BarangMasuk")
+    .select(`
       id,
-      jumlah,
-      harga_masuk,
-      barang:Barang (
+      tanggal_masuk,
+      keterangan,
+      gudang_id,
+      gudang:gudang (
         id,
-        nama_barang,
-        kode_barang,
-        satuan
+        nama_gudang
       ),
-      masuk:BarangMasuk!inner (
+      detailBarang:DetailBarangMasuk!id_barang_masuk (
         id,
-        tanggal_masuk,
-        keterangan,
-        gudang_id
+        id_barang,
+        jumlah,
+        harga_masuk,
+        barang:Barang (
+          id,
+          kode_barang,
+          nama_barang,
+          satuan,
+          merk,
+          tipe,
+          stok_gudang (
+            id,
+            stok,
+            gudang_id,
+            serial_number!serial_number_stok_gudang_id_fkey (
+              id,
+              sn,
+              status
+            )
+          )
+        )
       )
-    `
-      )
-      .eq("masuk.gudang_id", id);
+    `)
+    .eq("gudang_id", id); // ✅ FILTER GUDANG DI SINI
 
-    if (error) {
-      console.error("Error barang masuk:", error);
-      return;
-    }
+  if (error) {
+    console.error("Error barang masuk:", error);
+    return;
+  }
 
-    setBarangMasukList(data || []);
-  };
+  setBarangMasukList(data || []);
+};
 
-  const fetchBarangKeluar = async () => {
-    const { data, error } = await supabase.from("detail_barang_keluar") // ✅ lowercase
-      .select(`
+
+const fetchBarangKeluar = async () => {
+  const { data, error } = await supabase
+    .from("detail_barang_keluar")
+    .select(`
       id,
       jumlah,
       harga_keluar,
-      distribusi,
       barang:Barang (
         id,
         nama_barang,
@@ -163,31 +190,23 @@ export default function WarehouseShow() {
         id,
         tanggal_keluar,
         keterangan
+      ),
+      serial_number:serial_number!inner (
+        id,
+        sn,
+        status
       )
-    `);
+    `)
+    .eq("serial_number.status", "out")
+    .eq("distribusi->0->>gudang_id", id); // ✅ FILTER GUDANG DI SINI
 
-    if (error) {
-      console.error("Error barang keluar:", error);
-      return;
-    }
+  if (error) {
+    console.error("Error barang keluar:", error);
+    return;
+  }
 
-    // ✅ FILTER BERDASARKAN gudang_id DI JSON
-    const filtered = data.flatMap((row: any) => {
-      if (!Array.isArray(row.distribusi)) return [];
-
-      return row.distribusi
-        .filter((d: any) => String(d.gudang_id) === String(id))
-        .map((d: any) => ({
-          id: `${row.id}-${d.gudang_id}`,
-          jumlah: d.jumlah ?? row.jumlah,
-          barang: row.barang,
-          keluar: row.keluar,
-          gudang: d.nama_gudang,
-        }));
-    });
-
-    setBarangKeluarList(filtered);
-  };
+  setBarangKeluarList(data || []);
+};
 
   useEffect(() => {
     if (id) {
@@ -197,30 +216,29 @@ export default function WarehouseShow() {
     }
   }, [id]);
 
+  function formatDateIndo(value?: string | Date | null) {
+    if (!value) return "-";
+    const date = new Date(value);
 
-   function formatDateIndo(value?: string | Date | null) {
-  if (!value) return "-";
-  const date = new Date(value);
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
 
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+  function formatRupiah(value?: number | string | null) {
+    if (value === null || value === undefined) return "-";
 
- function formatRupiah(value?: number | string | null) {
-  if (value === null || value === undefined) return "-";
+    const num = typeof value === "string" ? Number(value) : value;
+    if (isNaN(num)) return "-";
 
-  const num = typeof value === "string" ? Number(value) : value;
-  if (isNaN(num)) return "-";
-
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(num);
-}
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(num);
+  }
 
   // -----------------------
   // 🔍 SEARCH FILTER
@@ -364,28 +382,67 @@ export default function WarehouseShow() {
                     <TableCell
                       isHeader
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Serial Number
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
                       Harga Masuk
                     </TableCell>
                   </TableRow>
                 </TableHeader>
 
-                <TableBody>
-                  {barangMasukList.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="px-4 py-3 dark:text-white/80">
-                        {formatDateIndo(row.masuk?.tanggal_masuk)}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 dark:text-white/80">
-                        {row.barang?.nama_barang}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 dark:text-white/80">
-                        {row.jumlah}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 dark:text-white/80">
-                        {formatRupiah(row.harga_masuk)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                  {barangMasukList.flatMap((bm) =>
+                    bm.detailBarang.map((d: any, i: any) => (
+                      <TableRow key={`${bm.id}-${i}`}>
+                        <TableCell className="px-4 py-3 dark:text-white/80">
+                          {formatDateIndo(bm.tanggal_masuk)}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 dark:text-white/80">
+                          {d.barang?.nama_barang}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 dark:text-white/80">
+                          {d.jumlah} / {d.barang?.satuan}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 dark:text-white/80">
+                          {d.barang?.stok_gudang
+                            ?.filter(
+                              (sg: any) => String(sg.gudang_id) === String(id)
+                            )
+                            .flatMap((sg: any) => sg.serial_number || [])
+                            .length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {d.barang.stok_gudang
+                                .filter(
+                                  (sg: any) =>
+                                    String(sg.gudang_id) === String(id)
+                                )
+                                .flatMap((sg: any) => sg.serial_number || [])
+                                .map((sn: any) => (
+                                  <span
+                                    key={sn.id}
+                                    className="px-2 py-0.5 text-sm rounded-full bg-emerald-100 
+                     text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    {sn.sn}
+                                  </span>
+                                ))}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+
+                        <TableCell className="px-4 py-3 dark:text-white/80">
+                          {formatRupiah(d.harga_masuk)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+
                   {barangMasukList.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-4">
@@ -421,7 +478,7 @@ export default function WarehouseShow() {
                     <TableCell
                       isHeader
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
-                      Tanggal
+                      Tanggal Keluar
                     </TableCell>
                     <TableCell
                       isHeader
@@ -431,12 +488,16 @@ export default function WarehouseShow() {
                     <TableCell
                       isHeader
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
-                      Nama
+                      Nama Barang
                     </TableCell>
+
                     <TableCell
                       isHeader
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
-                      Jumlah
+                      Jumlah Barang Keluar
+                    </TableCell>
+                    <TableCell isHeader className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Serial Number
                     </TableCell>
                   </TableRow>
                 </TableHeader>
@@ -453,8 +514,28 @@ export default function WarehouseShow() {
                       <TableCell className="px-4 py-3 dark:text-white/80">
                         {row.barang?.nama_barang}
                       </TableCell>
+
                       <TableCell className="px-4 py-3 dark:text-white/80">
-                        {row.jumlah}
+                        {row.jumlah}  {row.barang?.satuan}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 dark:text-white/80">
+                        {row.serial_number?.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {row.serial_number.map((sn: any) => (
+                              <span
+                                key={sn.id}
+                                className="
+            px-2 py-0.5 text-sm rounded-full
+            bg-red-400/30 text-red-600
+            line-through italic
+          ">
+                                {sn.sn}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -526,6 +607,12 @@ export default function WarehouseShow() {
                     <TableCell
                       isHeader
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
+                      Serial Number
+                    </TableCell>
+
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
                       Harga
                     </TableCell>
                   </TableRow>
@@ -550,6 +637,35 @@ export default function WarehouseShow() {
 
                       <TableCell className="px-4 py-3 dark:text-white/80">
                         {b.stok} {b.satuan}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 dark:text-white/80">
+                        {b.serial_number && b.serial_number.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {b.serial_number.map((sn, i) => {
+                              const statusClass =
+                                sn.status === "available"
+                                  ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                  : sn.status === "created"
+                                  ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                                  : sn.status === "out"
+                                  ? "bg-red-400/30 text-red-500 line-through italic"
+                                  : "bg-red-500/20 text-red-600";
+
+                              return (
+                                <span
+                                  key={i}
+                                  className={`
+              px-2 py-0.5 text-sm rounded-full
+              ${statusClass}
+            `}>
+                                  {sn.sn}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
 
                       <TableCell className="px-4 py-3 dark:text-white/80">
@@ -583,11 +699,6 @@ export default function WarehouseShow() {
             Kembali
           </Button>
 
-          <Button
-            className="rounded-xl"
-            onClick={() => navigate(`/warehouse/edit/${gudang.id}`)}>
-            Edit Gudang
-          </Button>
         </div>
       </div>
     </div>

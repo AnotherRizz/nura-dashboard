@@ -7,6 +7,7 @@ import {
 } from "../ui/table";
 import BarangTableSkeleton from "../skeleton/BarangTableSkeleton";
 import { useNavigate } from "react-router";
+import ActionButton from "../ui/ActionButton";
 
 export default function StokInTable({ data, loading }: any) {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function StokInTable({ data, loading }: any) {
             <TableCell   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">Total Item</TableCell>
             <TableCell   isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">Aksi</TableCell>
+                className="px-5 py-4 text-start dark:text-white sm:px-6">{""}</TableCell>
           </TableRow>
         </TableHeader>
 
@@ -61,12 +62,24 @@ export default function StokInTable({ data, loading }: any) {
                 <TableCell  className="px-4 py-3 dark:text-white/80">{item.keterangan}</TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">{item.total_item}</TableCell>
                 <TableCell  className="px-4 py-3 dark:text-white/80">
-                  <button
-                    onClick={() => navigate(`/barang-masuk/${item.id}`)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-lg"
-                  >
-                    Detail
-                  </button>
+                   <ActionButton
+                                       onClick={() => navigate(`/barang-masuk/${item.id}`)}
+                                        title="Detail"
+                                        color="brand">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.5}
+                                          stroke="currentColor"
+                                          className="size-7">
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
+                                          />
+                                        </svg>
+                                      </ActionButton>
                 </TableCell>
               </TableRow>
             ))

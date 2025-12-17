@@ -10,6 +10,7 @@ interface ItemType {
   id_barang: number | null;
   jumlah: number | null;
   harga_keluar: number | null;
+  serial_numbers?: number[]; //
   distribusi?: {
     gudang_id: number;
     nama_gudang: string;
@@ -43,6 +44,7 @@ export default function StokOutForm({
   const [search, setSearch] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<boolean[]>([]);
   const [stokGudang, setStokGudang] = useState<StokGudangType[]>([]);
+  const [snOptions, setSnOptions] = useState<Record<number, any[]>>({});
 
   const dateRef = useRef<HTMLInputElement | null>(null);
 
@@ -59,21 +61,20 @@ export default function StokOutForm({
       });
     }
   }, []);
-const [formData, setFormData] = useState<FormDataType>({
-  tanggal_keluar: "",
-  pic: "",
-  keterangan: "",
-  nama_project: "",
-  lokasi: "",
-  no_spk: "",
-  items: initialValues?.items ?? [],
-  ...initialValues,
-});
-
+  const [formData, setFormData] = useState<FormDataType>({
+    tanggal_keluar: "",
+    pic: "",
+    keterangan: "",
+    nama_project: "",
+    lokasi: "",
+    no_spk: "",
+    items: initialValues?.items ?? [],
+    ...initialValues,
+  });
 
   useEffect(() => {
     if (initialValues?.items) {
-  const withOld = initialValues.items.map((item: any) => ({
+      const withOld = initialValues.items.map((item: any) => ({
         ...item,
         jumlah_lama: item.jumlah, // simpan jumlah lama (penting!)
       }));
@@ -117,6 +118,41 @@ const [formData, setFormData] = useState<FormDataType>({
 
     fetchStokGudang();
   }, []);
+  const fetchSerialNumbers = async (barangId: number) => {
+    const { data, error } = await supabase
+      .from("serial_number")
+      .select(
+        `
+      id,
+      sn,
+      status,
+      stok_gudang!serial_number_stok_gudang_id_fkey!inner (
+        id,
+        barang_id,
+        gudang_id
+      )
+    `
+      )
+      .eq("status", "available")
+      .eq("stok_gudang.barang_id", barangId);
+
+    if (error) {
+      console.error("SN error:", error);
+      return [];
+    }
+
+    return data || [];
+  };
+
+  const loadSN = async (barangId: number, index: number) => {
+    const data = await fetchSerialNumbers(barangId);
+    console.log("SN loaded:", data);
+    setSnOptions((prev) => ({
+      ...prev,
+      [index]: data,
+    }));
+  };
+
   const getRemainingStokForItem = (barangId: number, currentIndex: number) => {
     const total = getTotalStok(barangId);
 
@@ -211,8 +247,10 @@ const [formData, setFormData] = useState<FormDataType>({
       items: [
         ...formData.items,
         {
-          id_barang: null, jumlah: null, harga_keluar: null,
-          jumlah_lama: 0
+          id_barang: null,
+          jumlah: null,
+          harga_keluar: null,
+          jumlah_lama: 0,
         },
       ],
     });
@@ -244,6 +282,18 @@ const [formData, setFormData] = useState<FormDataType>({
             if (formData.items.length === 0) {
               toast.error("Barang yang di pilih tidak boleh kosong!");
               return;
+            }
+            for (let i = 0; i < formData.items.length; i++) {
+              const item = formData.items[i];
+
+              if (item.serial_numbers?.length !== item.jumlah) {
+                toast.error(
+                  `Serial Number baris ${i + 1} harus dipilih sebanyak ${
+                    item.jumlah
+                  }`
+                );
+                return;
+              }
             }
 
             for (let i = 0; i < formData.items.length; i++) {
@@ -426,6 +476,9 @@ const [formData, setFormData] = useState<FormDataType>({
             const totalStok = barangDipilih
               ? getTotalStok(barangDipilih.id)
               : 0;
+            const jumlah = item.jumlah ?? 0;
+            const selectedCount = item.serial_numbers?.length ?? 0;
+            const showSN = jumlah > 0 && !!snOptions[idx];
 
             return (
               <div
@@ -568,6 +621,9 @@ const [formData, setFormData] = useState<FormDataType>({
                             fixed
                           ),
                         });
+                        if (fixed > 0) {
+                          loadSN(barangDipilih.id, idx);
+                        }
                       }}
                       className="
     w-full border px-3 py-2 rounded-lg
@@ -584,6 +640,53 @@ const [formData, setFormData] = useState<FormDataType>({
                     )}
                   </div>
                 </div>
+                {showSN && (
+                  <div className="mt-3">
+                    <label className="text-sm font-medium">
+                      Pilih Serial Number ({selectedCount}/{jumlah})
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto">
+                      {snOptions[idx].map((sn) => {
+                        const checked =
+                          item.serial_numbers?.includes(sn.id) ?? false;
+
+                        return (
+                          <label
+                            key={sn.id}
+                            className={`
+              flex items-center gap-2 p-2 rounded border cursor-pointer
+              ${
+                checked
+                  ? "bg-blue-100 dark:bg-blue-500/20 border-blue-500"
+                  : "bg-white dark:bg-gray-800 border-gray-300"
+              }
+            `}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!checked && selectedCount >= jumlah}
+                              onChange={() => {
+                                let selected = item.serial_numbers ?? [];
+
+                                if (checked) {
+                                  selected = selected.filter(
+                                    (id) => id !== sn.id
+                                  );
+                                } else {
+                                  selected = [...selected, sn.id];
+                                }
+
+                                updateItem(idx, "serial_numbers", selected);
+                              }}
+                            />
+                            <span>{sn.sn}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Hapus */}
                 <button

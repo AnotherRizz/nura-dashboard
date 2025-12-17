@@ -14,17 +14,32 @@ import {
 } from "../../components/ui/table";
 import { BoxCubeIcon } from "../../icons";
 
+interface SerialNumber {
+  id: string;
+  sn: string;
+  status: string;
+}
+
+interface StokGudang {
+  gudang_id: string;
+  id: string;
+  stok: number;
+  serial_number: SerialNumber[];
+}
+
 interface DetailBarang {
   id: string;
   id_barang: string;
   jumlah: number;
   harga_masuk: number;
   barang: {
+    id: string;
     kode_barang: string;
     nama_barang: string;
     satuan: string;
     merk: string;
     tipe: string;
+    stok_gudang: StokGudang[];
   };
 }
 
@@ -48,7 +63,12 @@ export default function StokInShow() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    const { data, error } = await supabase
+    setLoading(true);
+
+
+
+
+    const { data: result, error } = await supabase
       .from("BarangMasuk")
       .select(
         `
@@ -66,11 +86,22 @@ export default function StokInShow() {
         jumlah,
         harga_masuk,
         barang:Barang (
+          id,
           kode_barang,
           nama_barang,
           satuan,
           merk,
-          tipe
+          tipe,
+     stok_gudang (
+  id,
+  stok,
+  gudang_id,
+  serial_number!serial_number_stok_gudang_id_fkey (
+    id,
+    sn,
+    status
+  )
+)
         )
       )
     `
@@ -78,8 +109,13 @@ export default function StokInShow() {
       .eq("id", id)
       .single();
 
-    if (error) console.error(error);
-    setData(data as unknown as BarangMasuk);
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+
+    setData(result as unknown as BarangMasuk);
     setLoading(false);
   };
 
@@ -118,23 +154,21 @@ export default function StokInShow() {
 
           <div className="grid grid-cols-[140px_1fr] gap-y-2 gap-x-4">
             <span className="font-medium text-gray-600 dark:text-white/70">
-            <b> Gudang:</b>
-              
+              <b> Gudang:</b>
             </span>
             <span className="dark:text-white/80">
               {data.gudang?.nama_gudang || "-"}
             </span>
 
             <span className="font-medium text-gray-600 dark:text-white/70">
-            <b>    Tanggal Masuk:</b>
-          
+              <b> Tanggal Masuk:</b>
             </span>
             <span className="dark:text-white/80">
               {formatTanggalWaktu(data.tanggal_masuk)}
             </span>
 
             <span className="font-medium text-gray-600 dark:text-white/70">
-            <b>    Keterangan:</b>
+              <b> Keterangan:</b>
             </span>
             <span className="dark:text-white/80">{data.keterangan || "-"}</span>
           </div>
@@ -171,6 +205,10 @@ export default function StokInShow() {
                   className="px-5 py-4 text-start dark:text-white sm:px-6">
                   Satuan
                 </TableCell>
+                <TableCell isHeader className="px-5 py-4 dark:text-white">
+                  Serial Number
+                </TableCell>
+
                 <TableCell
                   isHeader
                   className="px-5 py-4 text-start dark:text-white sm:px-6">
@@ -207,6 +245,22 @@ export default function StokInShow() {
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {d.barang.satuan}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {d.barang.stok_gudang
+                        ?.filter((sg) => sg.gudang_id === data.gudang_id)
+                        .flatMap((sg) =>
+                          sg.serial_number.map((sn) => (
+                            <span
+                              key={sn.id}
+                              className="px-2 py-1 text-xs  bg-green-500/80 rounded-full text-white">
+                              {sn.sn}
+                            </span>
+                          ))
+                        )}
+                    </div>
+                  </TableCell>
+
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {d.jumlah}/{d.barang.satuan}
                   </TableCell>

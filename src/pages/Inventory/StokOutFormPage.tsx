@@ -118,22 +118,42 @@ export default function StokOutFormPage() {
       }
 
       // Insert detail + panggil RPC restore_stok
-      for (const item of formData.items) {
-        await supabase.from("detail_barang_keluar").insert([
-          {
-            barang_keluar_id: keluarId,
-            id_barang: item.id_barang,
-            jumlah: item.jumlah,
-            harga_keluar: item.harga_keluar,
-            distribusi: item.distribusi || [], // <-- ini yang hilang selama ini
-          },
-        ]);
+     for (const item of formData.items) {
+  // 1️⃣ Insert detail
+  const { data: detail, error: detailErr } = await supabase
+    .from("detail_barang_keluar")
+    .insert([
+      {
+        barang_keluar_id: keluarId,
+        id_barang: item.id_barang,
+        jumlah: item.jumlah,
+        harga_keluar: item.harga_keluar,
+        distribusi: item.distribusi || [],
+      },
+    ])
+    .select()
+    .single();
 
-        await supabase.rpc("decrease_stok_multi_gudang", {
-          p_barang_id: item.id_barang,
-          p_jumlah: item.jumlah,
-        });
-      }
+  if (detailErr) throw detailErr;
+
+  // 2️⃣ Update serial number
+  if (item.serial_numbers?.length) {
+    await supabase
+      .from("serial_number")
+      .update({
+        status: "out",
+        detail_barang_keluar_id: detail.id,
+      })
+      .in("id", item.serial_numbers);
+  }
+
+  // 3️⃣ Kurangi stok
+  await supabase.rpc("decrease_stok_multi_gudang", {
+    p_barang_id: item.id_barang,
+    p_jumlah: item.jumlah,
+  });
+}
+
 
       toast.success("Barang Keluar berhasil disimpan");
       navigate("/barang-keluar");

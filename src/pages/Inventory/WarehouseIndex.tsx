@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -53,31 +52,29 @@ export default function WarehouseIndex() {
     }
   };
 
-const fetchBarangCount = async (gudangList: any[]) => {
-  const result: any = {};
+  const fetchBarangCount = async (gudangList: any[]) => {
+    const result: any = {};
 
-  for (let g of gudangList) {
-    const { data, error } = await supabase
-      .from("stok_gudang")
-      .select("barang_id")
-      .eq("gudang_id", g.id);
+    for (let g of gudangList) {
+      const { data, error } = await supabase
+        .from("stok_gudang")
+        .select("barang_id")
+        .eq("gudang_id", g.id);
 
-    if (error) {
-      console.error(error);
-      result[g.id] = 0;
-      continue;
+      if (error) {
+        console.error(error);
+        result[g.id] = 0;
+        continue;
+      }
+
+      // ambil barang_id unik (distinct)
+      const uniqueBarang = new Set(data.map((row) => row.barang_id));
+
+      result[g.id] = uniqueBarang.size;
     }
 
-    // ambil barang_id unik (distinct)
-    const uniqueBarang = new Set(data.map((row) => row.barang_id));
-
-    result[g.id] = uniqueBarang.size;
-  }
-
-  setBarangCount(result);
-};
-
-
+    setBarangCount(result);
+  };
 
   useEffect(() => {
     fetchGudang(page, search);
@@ -96,21 +93,24 @@ const fetchBarangCount = async (gudangList: any[]) => {
       <PageMeta title="Data Gudang" description="Halaman daftar gudang" />
       <PageBreadcrumb pageTitle="Gudang" />
 
-      <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 
+      <div
+        className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 
         dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-
         {/* HEADER */}
         <div className="flex justify-between mb-6">
-          <h3 className="font-semibold text-2xl dark:text-white/90">Daftar Gudang</h3>
+          <h3 className="font-semibold text-2xl dark:text-white/90">
+            Daftar Gudang
+          </h3>
 
           <Button
             size="sm"
-            className="bg-blue-500 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r 
+               from-blue-600 via-cyan-600 to-teal-600  mt-4
+               text-white rounded-xl px-5 h-11 shadow-md"
             onClick={() => {
               setEditData(null);
               setSidebarOpen(true);
-            }}
-          >
+            }}>
             Tambah Gudang
           </Button>
         </div>
@@ -128,61 +128,70 @@ const fetchBarangCount = async (gudangList: any[]) => {
         {loading ? (
           <div className="text-center py-10">Memuat...</div>
         ) : gudang.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">Tidak ada gudang ditemukan.</div>
+          <div className="text-center py-10 text-gray-500">
+            Tidak ada gudang ditemukan.
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {gudang.map((g) => (
               <div
                 key={g.id}
-                className="p-6 rounded-2xl border shadow bg-white dark:border-gray-800 
-                dark:bg-gradient-to-br dark:from-blue-950  dark:to-black hover:shadow-md transition cursor-pointer"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <HomeModernIcon className="w-10 h-10 text-blue-500" />
-                  <div>
-                    <h4 className="text-xl font-semibold dark:text-white">{g.nama_gudang}</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {g.lokasi || "Lokasi tidak tersedia"}
-                    </p>
+                className="
+        p-6 rounded-2xl border shadow bg-white 
+        dark:border-gray-800 dark:bg-gradient-to-br 
+        dark:from-blue-950 dark:to-black 
+        hover:shadow-md transition cursor-pointer
+        flex flex-col justify-between
+        h-[300px]         /* FIXED HEIGHT */
+      ">
+                {/* BAGIAN ATAS */}
+                <div>
+                  {/* HEADER */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <HomeModernIcon className="w-10 h-10 text-teal-500" />
+                    <div className="max-w-[180px]">
+                      <h4 className="text-xl font-semibold dark:text-white truncate">
+                        {g.nama_gudang}
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                        {g.lokasi || "Lokasi tidak tersedia"}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* JUMLAH BARANG */}
+                  <div className="flex items-center gap-2 bg-teal-50 dark:bg-white/10 p-3 rounded-xl mb-3">
+                    <CubeIcon className="w-6 h-6 text-teal-600 dark:text-teal-300" />
+                    <span className="text-gray-700 dark:text-gray-200">
+                      <b>{barangCount[g.id] || 0}</b> jenis barang
+                    </span>
+                  </div>
+
+                  {/* KETERANGAN */}
+                  <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-sm">
+                    {g.keterangan || "Tidak ada keterangan"}
+                  </p>
                 </div>
 
-                {/* JUMLAH BARANG */}
-                <div className="flex items-center gap-2 bg-blue-50 dark:bg-white/10 
-                  p-3 rounded-xl mb-4">
-                  <CubeIcon className="w-6 h-6 text-blue-600 dark:text-blue-300" />
-                  <span className="text-gray-700 dark:text-gray-200">
-                    <b>{barangCount[g.id] || 0}</b> jenis barang
-                  </span>
+                {/* BAGIAN BAWAH */}
+                <div className="flex justify-start gap-3 pt-4">
+                  <Button
+                    size="sm"
+                    className="dark:bg-gray-700 bg-gray-600 hover:bg-gray-500 px-9 py-1 text-white rounded-lg"
+                    onClick={() => navigate(`/warehouse/${g.id}`)}>
+                    Detail
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    className="bg-yellow-500 hover:bg-yellow-600 px-7 py-1 text-white rounded-lg"
+                    onClick={() => {
+                      setEditData(g);
+                      setSidebarOpen(true);
+                    }}>
+                    Edit
+                  </Button>
                 </div>
-
-                {/* KETERANGAN */}
-                <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-2">
-                  {g.keterangan || "Tidak ada keterangan"}
-                </p>
-
-                {/* BUTTON ACTIONS */}
-              <div className="flex justify-between mt-4">
-  <Button
-    size="sm"
-    className="bg-gray-800 text-white rounded-lg"
-    onClick={() => navigate(`/warehouse/${g.id}`)}
-  >
-    Detail
-  </Button>
-
-  <Button
-    size="sm"
-    className="bg-yellow-500 text-white rounded-lg"
-    onClick={() => {
-      setEditData(g);
-      setSidebarOpen(true);
-    }}
-  >
-    Edit
-  </Button>
-</div>
-
               </div>
             ))}
           </div>
@@ -190,7 +199,11 @@ const fetchBarangCount = async (gudangList: any[]) => {
 
         {/* PAGINATION */}
         <div className="mt-6">
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
 
         {/* SIDEBAR FORM */}

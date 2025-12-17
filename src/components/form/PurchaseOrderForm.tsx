@@ -43,6 +43,8 @@ export default function PurchaseOrderForm() {
   const [supplierList, setSupplierList] = useState<Supplier[]>([]);
   const [barangList, setBarangList] = useState<Barang[]>([]);
 
+  const [terms, setTerms] = useState<string[]>([""]);
+
   const supplierRef = useRef<HTMLDivElement>(null);
   const barangRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -117,6 +119,13 @@ export default function PurchaseOrderForm() {
         toast.error("PO tidak ditemukan");
         setLoading(false);
         return navigate("/purchase-order");
+      }
+      if (po.ketentuan) {
+        try {
+          setTerms(po.ketentuan); // karena jsonb sudah auto parse ke object/array
+        } catch {
+          setTerms([""]);
+        }
       }
 
       setKeterangan(po.keterangan || "");
@@ -197,84 +206,89 @@ export default function PurchaseOrderForm() {
   // Submit
   // -----------------------
   const handleSubmit = async (e: any) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!supplierId) return toast.error("Supplier wajib dipilih!");
-    if (!noPo) return toast.error("Nomor PO wajib diisi!");
-    if (!tanggal) return toast.error("Tanggal wajib diisi!");
-    if (details.some((d) => !d.barang_id))
-      return toast.error("Semua barang wajib dipilih!");
-    if (!gudangId) return toast.error("Gudang tujuan wajib dipilih!");
+  if (!supplierId) return toast.error("Supplier wajib dipilih!");
+  if (!noPo) return toast.error("Nomor PO wajib diisi!");
+  if (!tanggal) return toast.error("Tanggal wajib diisi!");
+  if (details.some((d) => !d.barang_id))
+    return toast.error("Semua barang wajib dipilih!");
+  if (!gudangId) return toast.error("Gudang tujuan wajib dipilih!");
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      let poId = id;
+  try {
+    let poId = id;
 
-      if (!isEdit) {
-        const { data: po, error } = await supabase
-          .from("purchase_order")
-          .insert({
-            no_po: noPo,
-            tanggal,
-            supplier_id: supplierId,
-            gudang_id: gudangId,
-            keterangan,
-            status: "created",
-          })
+    // ⬅ letakkan di sini agar bisa dipakai INSERT dan UPDATE
+    const cleanTerms = terms.filter((t) => t.trim() !== "");
 
-          .select()
-          .single();
+    if (!isEdit) {
+      const { data: po, error } = await supabase
+        .from("purchase_order")
+        .insert({
+          no_po: noPo,
+          tanggal,
+          supplier_id: supplierId,
+          gudang_id: gudangId,
+          keterangan,
+          ketentuan: cleanTerms, // JSONB
+          status: "created",
+        })
+        .select()
+        .single();
 
-        if (error) throw error;
-        // @ts-ignore
-        poId = po.id;
-      } else {
-        const { error: updErr } = await supabase
-          .from("purchase_order")
-          .update({
-            no_po: noPo,
-            tanggal,
-            supplier_id: supplierId,
-            gudang_id: gudangId,
-            keterangan,
-          })
+      if (error) throw error;
+      // @ts-ignore
+      poId = po.id;
 
-          .eq("id", id);
+    } else {
+      const { error: updErr } = await supabase
+        .from("purchase_order")
+        .update({
+          no_po: noPo,
+          tanggal,
+          supplier_id: supplierId,
+          gudang_id: gudangId,
+          keterangan,
+          ketentuan: cleanTerms, // update JSONB
+        })
+        .eq("id", id);
 
-        if (updErr) throw updErr;
+      if (updErr) throw updErr;
 
-        // delete old details
-        const { error: delErr } = await supabase
-          .from("detail_purchase_order")
-          .delete()
-          .eq("purchase_order_id", id);
-        if (delErr) throw delErr;
-      }
-
-      // insert details with DB column names
-      const detailInsert = details.map((d) => ({
-        purchase_order_id: poId,
-        id_barang: d.barang_id,
-        jumlah: Number(d.qty),
-        harga_satuan: Number(d.harga),
-      }));
-
-      const { error: detErr } = await supabase
+      const { error: delErr } = await supabase
         .from("detail_purchase_order")
-        .insert(detailInsert);
+        .delete()
+        .eq("purchase_order_id", id);
 
-      if (detErr) throw detErr;
-
-      toast.success(isEdit ? "PO berhasil diupdate!" : "PO berhasil dibuat!");
-      navigate("/purchase-order");
-    } catch (err) {
-      console.error(err);
-      toast.error("Gagal menyimpan PO");
-    } finally {
-      setLoading(false);
+      if (delErr) throw delErr;
     }
-  };
+
+    const detailInsert = details.map((d) => ({
+      purchase_order_id: poId,
+      id_barang: d.barang_id,
+      jumlah: Number(d.qty),
+      harga_satuan: Number(d.harga),
+    }));
+
+    const { error: detErr } = await supabase
+      .from("detail_purchase_order")
+      .insert(detailInsert);
+
+    if (detErr) throw detErr;
+
+    toast.success(isEdit ? "PO berhasil diupdate!" : "PO berhasil dibuat!");
+    navigate("/purchase-order");
+
+  } catch (err) {
+    console.error(err);
+    toast.error("Gagal menyimpan PO");
+  } finally {
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     if (!gudangId) return;
     const gd = gudangList.find((g) => g.id === gudangId);
@@ -304,7 +318,6 @@ export default function PurchaseOrderForm() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [barangDropdownOpen]);
-
 
   // -----------------------
   // Render
@@ -443,6 +456,43 @@ export default function PurchaseOrderForm() {
                 )}
               </ul>
             )}
+          </div>
+          <div className="space-y-3">
+            <label className="font-semibold text-sm dark:text-white/80">
+              Ketentuan Pembayaran
+            </label>
+
+            {terms.map((t, index) => (
+              <div key={index} className="flex gap-2">
+                <input
+                  value={t}
+                  onChange={(e) => {
+                    const copy = [...terms];
+                    copy[index] = e.target.value;
+                    setTerms(copy);
+                  }}
+                  placeholder="Contoh: DP 10% atau Sisa pembayaran 60 hari"
+                  className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                />
+                {terms.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTerms(terms.filter((_, i) => i !== index));
+                    }}
+                    className="px-2 text-red-500 text-xl">
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setTerms([...terms, ""])}
+              className="px-3 py-1 bg-teal-600 text-white rounded">
+              + Tambah Ketentuan
+            </button>
           </div>
 
           {/* KETERANGAN */}
