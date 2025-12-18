@@ -69,6 +69,25 @@ export default function BarangDetailSidebar({
                 />
                 <DetailItem label="Gudang" value={barang.gudang?.nama_gudang} />
                 <DetailItem label="Stok" value={barang.stok} />
+                {barang.serial_numbers && barang.serial_numbers.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Serial Number</p>
+                    <div className="flex flex-wrap gap-2">
+                      {barang.serial_numbers.map((sn: any) => (
+                        <span
+                          key={sn.id}
+                          className="
+            px-2 py-1 text-xs rounded-full
+            bg-emerald-100 text-emerald-700
+            dark:bg-emerald-900/40 dark:text-emerald-300
+          ">
+                          {sn.sn}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <DetailItem
                   label="Harga"
                   value={

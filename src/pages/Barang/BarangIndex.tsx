@@ -55,10 +55,10 @@ export default function BarangIndex() {
     try {
       setLoading(true);
 
-    let query = supabase
-  .from("Barang")
-  .select(
-    `
+      let query = supabase
+        .from("Barang")
+        .select(
+          `
       id,
       kode_barang,
       nama_barang,
@@ -71,15 +71,20 @@ export default function BarangIndex() {
       supplier:supplier_id ( nama_supplier ),
 
       stok_gudang:stok_gudang (
+        id,
         stok,
-        gudang:gudang_id ( nama_gudang )
+        gudang:gudang_id ( nama_gudang ),
+        serial_number:serial_number!serial_number_stok_gudang_fk(
+          id,
+          sn,
+          status
+        )
       )
     `,
-    { count: "exact" }
-  )
-  .order("id", { ascending: false })
-  .range((page - 1) * limit, page * limit - 1);
-
+          { count: "exact" }
+        )
+        .order("id", { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
 
       // 🔹 Filter search
       if (debouncedSearch) {
@@ -97,25 +102,32 @@ export default function BarangIndex() {
         throw error;
       }
 
-     const formatted = data?.map((item: any) => ({
-  id: item.id,
-  kode_barang: item.kode_barang,
-  nama_barang: item.nama_barang,
-  harga: item.harga,
-  merk: item.merk,
-  tipe: item.tipe,
-  satuan: item.satuan,
-  gambar: item.gambar,
-  kategori: item.kategori,
-  supplier: item.supplier,
+      const formatted = data?.map((item: any) => {
+        const allSN =
+          item.stok_gudang?.flatMap((sg: any) => sg.serial_number || []) || [];
 
-  // stok total dari stok_gudang
-  stok: item.stok_gudang?.reduce((sum: number, sg: any) => sum + sg.stok, 0) || 0,
+        return {
+          id: item.id,
+          kode_barang: item.kode_barang,
+          nama_barang: item.nama_barang,
+          harga: item.harga,
+          merk: item.merk,
+          tipe: item.tipe,
+          satuan: item.satuan,
+          gambar: item.gambar,
+          kategori: item.kategori,
+          supplier: item.supplier,
 
-  // daftar gudang + stok per gudang
-  gudang_list: item.stok_gudang || []
-}));
+          stok:
+            item.stok_gudang?.reduce(
+              (sum: number, sg: any) => sum + sg.stok,
+              0
+            ) || 0,
 
+          gudang_list: item.stok_gudang || [],
+          serial_numbers: allSN, // ⬅️ PENTING
+        };
+      });
 
       setDataBarang(formatted || []);
       setMeta({
@@ -210,14 +222,6 @@ export default function BarangIndex() {
               />
             </div>
           </div>
-
-          {/* Tombol tambah barang */}
-          {/* <Button
-            size="sm"
-            className="bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-xl"
-            onClick={() => navigate("/barang/add")}>
-            Tambah Barang
-          </Button> */}
         </div>
 
         <BarangTable
