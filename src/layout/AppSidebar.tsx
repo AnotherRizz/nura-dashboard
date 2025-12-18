@@ -52,7 +52,7 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
       icon: <GridIcon />,
       subItems: [
         { name: "Dashboard Inventory", path: "/dashboard-inventory" },
-        { name: "Dashboard Monitoring", path: "/" },
+        // { name: "Dashboard Monitoring", path: "/" },
       ],
     },
     {

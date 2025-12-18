@@ -326,31 +326,29 @@ export default function PurchaseOrderShow() {
           timbul akan dibebankan kepada Pabrik
         </div>
       </section>
-    <button
-  onClick={() => setPreview(true)}
-  className="px-4 py-2 bg-blue-600 text-white rounded"
->
-  Preview PDF
-</button>
+      <button
+        onClick={() => setPreview(true)}
+        className="px-4 py-2 bg-blue-600 text-white rounded">
+        Preview PDF
+      </button>
 
-{preview && (
-  <PurchaseOrderPreview
-    onClose={() => setPreview(false)}
-    data={data}
-    details={details}
-    subtotal={subtotal}
-    ppn={ppn}
-    total={total}
-    dp={dp}
-    sisa={sisa}
-    termLabel={
-      termDP?.dpPercent === 100
-        ? "DP 100%"
-        : `DP ${termDP?.dpPercent ?? 10}%`
-    }
-  />
-)}
-
+      {preview && (
+        <PurchaseOrderPreview
+          onClose={() => setPreview(false)}
+          data={data}
+          details={details}
+          subtotal={subtotal}
+          ppn={ppn}
+          total={total}
+          dp={dp}
+          sisa={sisa}
+          termLabel={
+            termDP?.dpPercent === 100
+              ? "Dibayar Lunas"
+              : `DP ${termDP?.dpPercent ?? 10}%`
+          }
+        />
+      )}
     </div>
   );
 }

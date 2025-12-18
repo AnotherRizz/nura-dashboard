@@ -2,7 +2,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 /* =====================
     TYPES
-  ===================== */
+===================== */
 
 export interface Supplier {
   nama_supplier: string;
@@ -14,6 +14,7 @@ export interface PurchaseOrder {
   tanggal: string;
   keterangan?: string | null;
   supplier: Supplier;
+  ketentuan?: string[];
 }
 
 export interface PODetail {
@@ -40,7 +41,7 @@ export interface PurchaseOrderPDFProps {
 
 /* =====================
     DOCUMENT
-  ===================== */
+===================== */
 
 export function PurchaseOrderPDF({
   data,
@@ -52,14 +53,13 @@ export function PurchaseOrderPDF({
   sisa,
   termLabel = "DP 10%",
 }: PurchaseOrderPDFProps) {
-  const ROW_HEIGHT = 28;
+  const ROW_HEIGHT = 26;
+  const safeDetails = details.length > 0 ? details : [{} as PODetail];
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* =====================
-              HEADER
-          ===================== */}
+        {/* HEADER */}
         <Text style={styles.date}>
           Tangerang Selatan,{" "}
           {new Date(data.tanggal).toLocaleDateString("id-ID", {
@@ -83,13 +83,11 @@ export function PurchaseOrderPDF({
         <Text style={styles.text}>
           <Text style={styles.bold}>Dengan hormat,</Text>
           {"\n"}
-          Dengan ini kami sampaikan Purchase Order material dengan rincian
+          Dengan ini kami sampaikan Purchase Order material dengan perincian
           sebagai berikut:
         </Text>
 
-        {/* =====================
-              TABLE
-          ===================== */}
+        {/* ================= TABLE ================= */}
         <View style={styles.table}>
           {/* HEADER */}
           <View style={styles.tr}>
@@ -102,40 +100,43 @@ export function PurchaseOrderPDF({
             <Text style={styles.thKet}>Keterangan</Text>
           </View>
 
-    <View style={styles.tableBodyRow}>
-  {/* KIRI (DATA BARANG) */}
-  <View>
-    {details.map((d, i) => (
-      <View style={[styles.tr, { height: ROW_HEIGHT }]} key={d.id}>
-        <Text style={styles.tdNo}>{i + 1}</Text>
-        <Text style={styles.tdDesignator}>{d.barang.nama_barang}</Text>
-        <Text style={styles.tdSat}>{d.barang.satuan}</Text>
-        <Text style={styles.tdVol}>{d.jumlah}</Text>
-        <Text style={styles.tdHarga}>
-          {d.harga_satuan.toLocaleString("id-ID")}
-        </Text>
-        <Text style={styles.tdJumlah}>
-          {d.subtotal.toLocaleString("id-ID")}
-        </Text>
-      </View>
-    ))}
-  </View>
+          {/* BODY */}
+          <View style={styles.tableBodyRow}>
+            {/* LEFT */}
+            <View>
+              {safeDetails.map((d, i) => (
+                <View key={i} style={[styles.tr, { height: ROW_HEIGHT }]}>
+                  <Text style={styles.tdNo}>{details.length ? i + 1 : ""}</Text>
+                  <Text style={styles.tdDesignator}>
+                    {d.barang?.nama_barang || ""}
+                  </Text>
+                  <Text style={styles.tdSat}>{d.barang?.satuan || ""}</Text>
+                  <Text style={styles.tdVol}>
+                    {d.jumlah?.toLocaleString("id-ID") || ""}
+                  </Text>
+                  <Text style={styles.tdHarga}>
+                    {d.harga_satuan?.toLocaleString("id-ID") || ""}
+                  </Text>
+                  <Text style={styles.tdJumlah}>
+                    {d.subtotal?.toLocaleString("id-ID") || ""}
+                  </Text>
+                </View>
+              ))}
+            </View>
 
-  {/* KANAN (KETERANGAN SEKALI SAJA) */}
-  <View
-    style={[
-      styles.keteranganBox,
-      { height: ROW_HEIGHT * details.length },
-    ]}
-  >
-    <Text style={styles.keteranganText}>
-      {data.keterangan}
-    </Text>
-  </View>
-</View>
+            {/* RIGHT (KETERANGAN) */}
+            <View
+              style={[
+                styles.keteranganBox,
+                { height: ROW_HEIGHT * safeDetails.length },
+              ]}>
+              <Text style={styles.keteranganText}>
+                {data.keterangan || "-"}
+              </Text>
+            </View>
+          </View>
 
-
-          {/* JUMLAH */}
+          {/* TOTALS */}
           <View style={styles.tr}>
             <Text style={styles.empty5} />
             <Text style={styles.totalLabel}>Jumlah</Text>
@@ -144,14 +145,12 @@ export function PurchaseOrderPDF({
             </Text>
           </View>
 
-          {/* PPN */}
           <View style={styles.tr}>
             <Text style={styles.empty5} />
             <Text style={styles.totalLabel}>PPN 11%</Text>
             <Text style={styles.totalValue}>{ppn.toLocaleString("id-ID")}</Text>
           </View>
 
-          {/* TOTAL */}
           <View style={styles.tr}>
             <Text style={styles.empty5} />
             <Text style={styles.totalLabelBold}>TOTAL</Text>
@@ -161,17 +160,28 @@ export function PurchaseOrderPDF({
           </View>
         </View>
 
-        {/* =====================
-              PAYMENT BOX
-          ===================== */}
-        <View style={styles.paymentBox}>
-          <View style={styles.paymentRow}>
-            <Text>{termLabel}</Text>
-            <Text>Rp {dp.toLocaleString("id-ID")}</Text>
+        {/* SYARAT & PAYMENT (SEJAJAR) */}
+        <View style={styles.syaratPaymentRow}>
+          {/* SYARAT */}
+          <View style={styles.syaratBox}>
+            <Text style={styles.bold}>Syarat dan Ketentuan:</Text>
+            {data.ketentuan && data.ketentuan.length > 0 ? (
+              data.ketentuan.map((k, i) => <Text key={i}>- {k}</Text>)
+            ) : (
+              <Text>- Tidak ada ketentuan</Text>
+            )}
           </View>
-          <View style={styles.paymentRow}>
-            <Text style={styles.bold}>Sisa Pembayaran</Text>
-            <Text style={styles.bold}>Rp {sisa.toLocaleString("id-ID")}</Text>
+
+          {/* PAYMENT */}
+          <View style={styles.paymentBox}>
+            <View style={styles.paymentRow}>
+              <Text>{termLabel}</Text>
+              <Text>Rp {dp.toLocaleString("id-ID")}</Text>
+            </View>
+            <View style={styles.paymentRow}>
+              <Text style={styles.bold}>Sisa Pembayaran</Text>
+              <Text style={styles.bold}>Rp {sisa.toLocaleString("id-ID")}</Text>
+            </View>
           </View>
         </View>
 
@@ -189,6 +199,12 @@ export function PurchaseOrderPDF({
         <Text style={styles.signature}>
           Bintang Aryo Dharmawan{"\n"}
           Direktur
+        </Text>
+        <Text style={{ marginTop: 10 }}>
+          Catatan:
+          {"\n"}Apabila barang yang di Order/PO tidak sesuai dengan Spec, maka
+          akan dikembalikan dan biaya-biaya yang timbul akan dibebankan kepada
+          Pabrik.
         </Text>
       </Page>
     </Document>
@@ -314,24 +330,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     textAlign: "right",
   },
-tableBodyRow: {
-  flexDirection: "row",
-},
+  tableBodyRow: {
+    flexDirection: "row",
+  },
 
-keteranganBox: {
-  width: 100,
-  borderLeftWidth: 1,
-  borderBottomWidth: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: 6,
-},
+  keteranganBox: {
+    width: 100,
+    borderLeftWidth: 1,
+    borderBottomWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 6,
+  },
 
-keteranganText: {
-  textAlign: "center",
-  lineHeight: 1.3,
-},
-
+  keteranganText: {
+    textAlign: "center",
+    lineHeight: 1.3,
+  },
 
   /* EMPTY COLSPAN (5 kolom) */
   empty5: {
@@ -368,6 +383,17 @@ keteranganText: {
     borderBottomWidth: 1,
     textAlign: "right",
     fontWeight: "bold",
+  },
+  syaratPaymentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginTop: 2,
+  },
+
+  syaratBox: {
+    width: 300,
+    paddingRight: 10,
   },
 
   /* PAYMENT */
