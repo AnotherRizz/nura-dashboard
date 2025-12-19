@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
-import { CubeIcon,  ArrowTrendingDownIcon } from "@heroicons/react/24/solid";
+import { CubeIcon, ArrowTrendingDownIcon } from "@heroicons/react/24/solid";
 import {
   ResponsiveContainer,
   BarChart,
@@ -288,33 +288,32 @@ export default function DashboardInventory() {
     <div className="p-6 space-y-6 text-white">
       {/* METRIC BOXES */}
       <div className="grid grid-cols-12 gap-4">
-      <MetricBox
-  title="Jumlah Barang"
-  value={metrics.totalBarang}
-  valueLabel="item terdaftar"
-  subLabel=""
-  color="from-blue-800 to-gray-950"
-  icon={CubeIcon}
-/>
+        <MetricBox
+          title="Jumlah Barang"
+          value={metrics.totalBarang}
+          valueLabel="item terdaftar"
+          subLabel=""
+          color="from-blue-800 to-gray-950"
+          icon={CubeIcon}
+        />
 
-<MetricBox
-  title="Total Barang Masuk"
-  value={metrics.totalIn}
-  valueLabel="barang masuk"
-  subLabel={`${metrics.totalIn} transaksi`}
-  color="from-green-800 to-gray-950"
-  icon={ArrowTrendingDownIcon}
-/>
+        <MetricBox
+          title="Total Barang Masuk"
+          value={metrics.totalIn}
+          valueLabel="barang masuk"
+          subLabel={`${metrics.totalIn} transaksi`}
+          color="from-green-800 to-gray-950"
+          icon={ArrowTrendingDownIcon}
+        />
 
-<MetricBox
-  title="Total Barang Keluar"
-  value={metrics.totalOut}
-  valueLabel="barang keluar"
-  subLabel={`${metrics.totalOut} transaksi`}
-  color="from-red-800 to-gray-950"
-  icon={ArrowTrendingUpIcon}
-/>
-
+        <MetricBox
+          title="Total Barang Keluar"
+          value={metrics.totalOut}
+          valueLabel="barang keluar"
+          subLabel={`${metrics.totalOut} transaksi`}
+          color="from-red-800 to-gray-950"
+          icon={ArrowTrendingUpIcon}
+        />
       </div>
 
       {/* CHART */}
@@ -422,9 +421,10 @@ export default function DashboardInventory() {
       {/* LOG TABLE SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* ==== LOG BARANG MASUK ==== */}
-       <div className="dark:bg-gray-900 p-5 rounded-2xl border border-gray-300 dark:border-gray-700">
+        <div className="dark:bg-gray-900 p-5 rounded-2xl border border-gray-300 dark:border-gray-700">
           <h2 className="text-xl text-gray-800 dark:text-gray-100 font-semibold mb-4">
-            <ArrowTrendingDownIcon className="w-6 h-6 inline-block" /> 5 Barang Masuk Terbaru
+            <ArrowTrendingDownIcon className="w-6 h-6 inline-block" /> 5 Barang
+            Masuk Terbaru
           </h2>
 
           <table className="w-full text-left text-sm">
@@ -437,7 +437,9 @@ export default function DashboardInventory() {
             </thead>
             <tbody>
               {logIn.map((row) => (
-                <tr key={row.id} className="border-b text-gray-800 dark:text-gray-400  border-gray-400 dark:border-gray-800">
+                <tr
+                  key={row.id}
+                  className="border-b text-gray-800 dark:text-gray-400  border-gray-400 dark:border-gray-800">
                   <td className="p-2">{row.nama}</td>
                   <td className="p-2">{row.jumlah} item</td>
                   <td className="p-2">
@@ -460,7 +462,8 @@ export default function DashboardInventory() {
         {/* ==== LOG BARANG KELUAR ==== */}
         <div className="dark:bg-gray-900 p-5 rounded-2xl border border-gray-300 dark:border-gray-700">
           <h2 className="text-xl text-gray-800 dark:text-gray-100 font-semibold mb-4">
-            <ArrowTrendingUpIcon className="w-6 h-6 inline-block" /> 5 Barang Keluar Terbaru
+            <ArrowTrendingUpIcon className="w-6 h-6 inline-block" /> 5 Barang
+            Keluar Terbaru
           </h2>
 
           <table className="w-full text-left text-sm">
@@ -473,7 +476,9 @@ export default function DashboardInventory() {
             </thead>
             <tbody>
               {logOut.map((row) => (
-                <tr key={row.id} className="border-b text-gray-800 dark:text-gray-400  border-gray-400 dark:border-gray-800">
+                <tr
+                  key={row.id}
+                  className="border-b text-gray-800 dark:text-gray-400  border-gray-400 dark:border-gray-800">
                   <td className="p-2">{row.nama}</td>
                   <td className="p-2">{row.jumlah} item</td>
                   <td className="p-2">
@@ -509,36 +514,39 @@ export default function DashboardInventory() {
 //   color: string;
 // }
 
-function MetricBox({ title, value, valueLabel, subLabel, color, icon: Icon }: any) {
+function MetricBox({
+  title,
+  value,
+  valueLabel,
+  subLabel,
+  color,
+  icon: Icon,
+}: any) {
   return (
     <div
       className={`col-span-12 sm:col-span-4 
       p-6 rounded-2xl shadow-lg 
-      bg-white dark:bg-gradient-to-br ${color}
+     bg-gradient-to-br ${color}
       border border-gray-200 dark:border-transparent 
-      text-gray-900 dark:text-white
-    `}
-    >
+      text-white
+    `}>
       <div className="flex items-center gap-3">
         <div
           className="w-16 h-16 flex items-center justify-center 
-          rounded-xl bg-gray-100 dark:bg-white/10"
-        >
-          <Icon className="w-10 h-10 text-gray-700 dark:text-white" />
+          rounded-xl bg-white/10">
+          <Icon className="w-10 h-10 :text-white" />
         </div>
         <div>
+          <p className="text-lg opacity-80">{title}</p>
 
-        <p className="text-lg opacity-80">{title}</p>
-
-      <p className="text-4xl font-bold mt-1">{value}</p>
-      <p className="opacity-75">{valueLabel}</p>
-      <p className="text-sm opacity-60 mt-1">{subLabel}</p>
+          <p className="text-4xl font-bold mt-1">{value}</p>
+          <p className="opacity-75">{valueLabel}</p>
+          <p className="text-sm opacity-60 mt-1">{subLabel}</p>
         </div>
       </div>
     </div>
   );
 }
-
 
 function TabButton({
   text,

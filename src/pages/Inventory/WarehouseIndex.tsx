@@ -9,6 +9,7 @@ import { supabase } from "../../services/supabaseClient";
 
 import { HomeModernIcon, CubeIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router";
+import { InformationCircleIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 
 export default function WarehouseIndex() {
   const [gudang, setGudang] = useState<any[]>([]);
@@ -148,7 +149,7 @@ export default function WarehouseIndex() {
                 <div>
                   {/* HEADER */}
                   <div className="flex items-center gap-4 mb-4">
-                    <HomeModernIcon className="w-10 h-10 text-teal-500" />
+                    <HomeModernIcon className="w-10 h-10 text-blue-500 bg-blue-500/30 p-2 rounded-full" />
                     <div className="max-w-[180px]">
                       <h4 className="text-xl font-semibold dark:text-white truncate">
                         {g.nama_gudang}
@@ -160,8 +161,8 @@ export default function WarehouseIndex() {
                   </div>
 
                   {/* JUMLAH BARANG */}
-                  <div className="flex items-center gap-2 bg-teal-50 dark:bg-white/10 p-3 rounded-xl mb-3">
-                    <CubeIcon className="w-6 h-6 text-teal-600 dark:text-teal-300" />
+                  <div className="flex items-center gap-2 bg-blue-50 dark:bg-white/10 p-3 rounded-xl mb-3">
+                    <CubeIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                     <span className="text-gray-700 dark:text-gray-200">
                       <b>{barangCount[g.id] || 0}</b> jenis barang
                     </span>
@@ -175,22 +176,18 @@ export default function WarehouseIndex() {
 
                 {/* BAGIAN BAWAH */}
                 <div className="flex justify-start gap-3 pt-4">
-                  <Button
-                    size="sm"
-                    className="dark:bg-gray-700 bg-gray-600 hover:bg-gray-500 px-9 py-1 text-white rounded-lg"
+                  <button
                     onClick={() => navigate(`/warehouse/${g.id}`)}>
-                    Detail
-                  </Button>
+                    <InformationCircleIcon className="w-10 h-10  bg-orange-700/30 hover:bg-orange-500 dark:bg-orange-500 p-2 text-orange-900 rounded-lg" />
+                  </button>
 
-                  <Button
-                    size="sm"
-                    className="bg-yellow-500 hover:bg-yellow-600 px-7 py-1 text-white rounded-lg"
+                  <button
                     onClick={() => {
                       setEditData(g);
                       setSidebarOpen(true);
                     }}>
-                    Edit
-                  </Button>
+                    <PencilSquareIcon className="w-10 h-10  bg-green-700/30 hover:bg-green-500 dark:bg-green-500 p-2 text-green-900 rounded-lg"/>
+                  </button>
                 </div>
               </div>
             ))}
