@@ -98,17 +98,10 @@ export default function BarangFormPage() {
   const handleSubmit = async (formData: any) => {
     try {
       let barangId = id;
-
-      // pisahkan stok & gudang
       const stok = Number(formData.stok);
       const gudang_id = formData.gudang_id;
-
       delete formData.stok;
       delete formData.gudang_id;
-
-      // ----------------------------
-      // UPDATE BARANG
-      // ----------------------------
       if (id) {
         const { error: updateError } = await supabase
           .from("Barang")
@@ -128,9 +121,6 @@ export default function BarangFormPage() {
         barangId = inserted.id;
       }
 
-      // --------------------------------------
-      // UPDATE / INSERT STOK DI stok_gudang
-      // --------------------------------------
       const { data: existing } = await supabase
         .from("stok_gudang")
         .select("id")

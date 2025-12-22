@@ -18,6 +18,7 @@ interface SerialNumber {
   id: string;
   sn: string;
   status: string;
+  detail_barang_masuk_id: string;
 }
 
 interface StokGudang {
@@ -65,9 +66,6 @@ export default function StokInShow() {
   const fetchData = async () => {
     setLoading(true);
 
-
-
-
     const { data: result, error } = await supabase
       .from("BarangMasuk")
       .select(
@@ -96,11 +94,12 @@ export default function StokInShow() {
   id,
   stok,
   gudang_id,
-  serial_number!serial_number_stok_gudang_id_fkey (
-    id,
-    sn,
-    status
-  )
+serial_number!serial_number_stok_gudang_id_fkey (
+  id,
+  sn,
+  status,
+  detail_barang_masuk_id
+)
 )
         )
       )
@@ -250,13 +249,15 @@ export default function StokInShow() {
                       {d.barang.stok_gudang
                         ?.filter((sg) => sg.gudang_id === data.gudang_id)
                         .flatMap((sg) =>
-                          sg.serial_number.map((sn) => (
-                            <span
-                              key={sn.id}
-                              className="px-2 py-1 text-xs  bg-green-500/80 rounded-full text-white">
-                              {sn.sn}
-                            </span>
-                          ))
+                          sg.serial_number
+                            .filter((sn) => sn.detail_barang_masuk_id === d.id)
+                            .map((sn) => (
+                              <span
+                                key={sn.id}
+                                className="px-2 py-1 text-xs bg-green-500/80 rounded-full text-white">
+                                {sn.sn}
+                              </span>
+                            ))
                         )}
                     </div>
                   </TableCell>

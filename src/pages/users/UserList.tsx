@@ -24,7 +24,7 @@ export default function UserList() {
   const [addEmail, setAddEmail] = useState("");
   const [addPassword, setAddPassword] = useState("");
   const [addRole, setAddRole] = useState("user");
-  const [, setAdding] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -86,52 +86,62 @@ export default function UserList() {
       toast.error("Gagal hapus user");
     }
   };
-const handleAddUser = async (e: React.FormEvent) => {
-  e.preventDefault();
+  
 
-  try {
-    setAdding(true);
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: addEmail,
-    password: addPassword,
-    name: addName,
-    role: addRole,
-  }),
-});
+    try {
+      setAdding(true);
+const {
+  data: { session },
+} = await supabase.auth.getSession();
 
-
-    const result = await res.json();
-
-    if (res.status !== 200) {
-      toast.error(result.error || "Gagal membuat user");
-      return;
-    }
-
-    toast.success("User berhasil ditambahkan!");
-
-    setAddName("");
-    setAddEmail("");
-    setAddPassword("");
-    setAddRole("user");
-    setOpenAdd(false);
-
-    fetchUsers(page, search);
-
-  } catch (err: any) {
-    console.error(err);
-    toast.error(err.message || "Error!");
-  } finally {
-    setAdding(false);
+if (!session) {
+  toast.error("Anda belum login");
+  return;
+}
+     const res = await fetch(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      email: addEmail,
+      password: addPassword,
+      name: addName,
+      role: addRole,
+    }),
   }
-};
+);
 
 
+      const result = await res.json();
+
+      if (res.status !== 200) {
+        toast.error(result.error || "Gagal membuat user");
+        return;
+      }
+
+      toast.success("User berhasil ditambahkan!");
+
+      setAddName("");
+      setAddEmail("");
+      setAddPassword("");
+      setAddRole("user");
+      setOpenAdd(false);
+
+      fetchUsers(page, search);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Error!");
+    } finally {
+      setAdding(false);
+    }
+  };
 
   // 🔹 Ubah status aktif user
   const handleToggle = async (id: string, newValue: boolean) => {
@@ -292,12 +302,19 @@ const handleAddUser = async (e: React.FormEvent) => {
                   Batal
                 </Button>
 
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="bg-brand-500 rounded-lg hover:bg-brand-600">
-                  Simpan
-                </Button>
+              <Button
+  type="submit"
+  size="sm"
+  disabled={adding}
+  className={`rounded-lg ${
+    adding
+      ? "bg-brand-400 cursor-not-allowed opacity-70"
+      : "bg-brand-500 hover:bg-brand-600"
+  }`}
+>
+  {adding ? "Menyimpan..." : "Simpan"}
+</Button>
+
               </div>
             </form>
           </div>
@@ -306,3 +323,5 @@ const handleAddUser = async (e: React.FormEvent) => {
     </div>
   );
 }
+
+

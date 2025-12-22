@@ -125,10 +125,11 @@ serial_number:serial_number!serial_number_stok_gudang_id_fkey (
     }
   };
 
-const fetchBarangMasuk = async () => {
-  const { data, error } = await supabase
-    .from("BarangMasuk")
-    .select(`
+  const fetchBarangMasuk = async () => {
+    const { data, error } = await supabase
+      .from("BarangMasuk")
+      .select(
+        `
       id,
       tanggal_masuk,
       keterangan,
@@ -149,34 +150,37 @@ const fetchBarangMasuk = async () => {
           satuan,
           merk,
           tipe,
-          stok_gudang (
-            id,
-            stok,
-            gudang_id,
-            serial_number!serial_number_stok_gudang_id_fkey (
-              id,
-              sn,
-              status
-            )
-          )
+        stok_gudang (
+  id,
+  stok,
+  gudang_id,
+  serial_number!serial_number_stok_gudang_id_fkey (
+    id,
+    sn,
+    status,
+    detail_barang_masuk_id
+  )
+)
+
         )
       )
-    `)
-    .eq("gudang_id", id); // ✅ FILTER GUDANG DI SINI
+    `
+      )
+      .eq("gudang_id", id); // ✅ FILTER GUDANG DI SINI
 
-  if (error) {
-    console.error("Error barang masuk:", error);
-    return;
-  }
+    if (error) {
+      console.error("Error barang masuk:", error);
+      return;
+    }
 
-  setBarangMasukList(data || []);
-};
+    setBarangMasukList(data || []);
+  };
 
-
-const fetchBarangKeluar = async () => {
-  const { data, error } = await supabase
-    .from("detail_barang_keluar")
-    .select(`
+  const fetchBarangKeluar = async () => {
+    const { data, error } = await supabase
+      .from("detail_barang_keluar")
+      .select(
+        `
       id,
       jumlah,
       harga_keluar,
@@ -196,17 +200,18 @@ const fetchBarangKeluar = async () => {
         sn,
         status
       )
-    `)
-    .eq("serial_number.status", "out")
-    .eq("distribusi->0->>gudang_id", id); // ✅ FILTER GUDANG DI SINI
+    `
+      )
+      .eq("serial_number.status", "out")
+      .eq("distribusi->0->>gudang_id", id); // ✅ FILTER GUDANG DI SINI
 
-  if (error) {
-    console.error("Error barang keluar:", error);
-    return;
-  }
+    if (error) {
+      console.error("Error barang keluar:", error);
+      return;
+    }
 
-  setBarangKeluarList(data || []);
-};
+    setBarangKeluarList(data || []);
+  };
 
   useEffect(() => {
     if (id) {
@@ -413,20 +418,29 @@ const fetchBarangKeluar = async () => {
                             ?.filter(
                               (sg: any) => String(sg.gudang_id) === String(id)
                             )
-                            .flatMap((sg: any) => sg.serial_number || [])
-                            .length > 0 ? (
+                            .flatMap((sg: any) =>
+                              (sg.serial_number || []).filter(
+                                (sn: any) => sn.detail_barang_masuk_id === d.id
+                              )
+                            ).length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {d.barang.stok_gudang
                                 .filter(
                                   (sg: any) =>
                                     String(sg.gudang_id) === String(id)
                                 )
-                                .flatMap((sg: any) => sg.serial_number || [])
+                                .flatMap((sg: any) =>
+                                  (sg.serial_number || []).filter(
+                                    (sn: any) =>
+                                      sn.detail_barang_masuk_id === d.id
+                                  )
+                                )
                                 .map((sn: any) => (
                                   <span
                                     key={sn.id}
-                                    className="px-2 py-0.5 text-sm rounded-full bg-emerald-100 
-                     text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    className="px-2 py-0.5 text-sm rounded-full
+              bg-emerald-100 text-emerald-700
+              dark:bg-emerald-900/40 dark:text-emerald-300">
                                     {sn.sn}
                                   </span>
                                 ))}
@@ -496,7 +510,9 @@ const fetchBarangKeluar = async () => {
                       className="px-5 py-4 text-start dark:text-white sm:px-6">
                       Jumlah Barang Keluar
                     </TableCell>
-                    <TableCell isHeader className="px-5 py-4 text-start dark:text-white sm:px-6">
+                    <TableCell
+                      isHeader
+                      className="px-5 py-4 text-start dark:text-white sm:px-6">
                       Serial Number
                     </TableCell>
                   </TableRow>
@@ -516,7 +532,7 @@ const fetchBarangKeluar = async () => {
                       </TableCell>
 
                       <TableCell className="px-4 py-3 dark:text-white/80">
-                        {row.jumlah}  {row.barang?.satuan}
+                        {row.jumlah} {row.barang?.satuan}
                       </TableCell>
                       <TableCell className="px-4 py-3 dark:text-white/80">
                         {row.serial_number?.length > 0 ? (
@@ -698,7 +714,6 @@ const fetchBarangKeluar = async () => {
             onClick={() => navigate("/warehouse")}>
             Kembali
           </Button>
-
         </div>
       </div>
     </div>

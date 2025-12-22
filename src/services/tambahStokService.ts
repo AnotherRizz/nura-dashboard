@@ -214,7 +214,9 @@ export async function submitBarangMasuk(
   keterangan: string,
   barangList: Barang[]
 ) {
-  // create main entry
+  // =============================
+  // INSERT HEADER BARANG MASUK
+  // =============================
   const { data: masuk, error: masukErr } = await supabase
     .from("BarangMasuk")
     .insert({
@@ -227,6 +229,9 @@ export async function submitBarangMasuk(
 
   if (masukErr) throw masukErr;
 
+  // =============================
+  // PREPARE DETAIL & CONTEXT
+  // =============================
   const detailInsertPayload: {
     id_barang_masuk: string;
     id_barang: string;
@@ -234,54 +239,85 @@ export async function submitBarangMasuk(
     harga_masuk: number;
   }[] = [];
 
+  const preparedRows: {
+    barangId: string;
+    stokGudangId: string;
+    serialNumbers: string[];
+  }[] = [];
+
+  // =============================
+  // LOOP ROWS (TETAP SEPERTI LAMA)
+  // =============================
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
 
     const barangId = await createBarangIfNeeded(
-  r,
-  barangList,
-  r.kategoriId,
-  r.supplierId
-);
+      r,
+      barangList,
+      r.kategoriId,
+      r.supplierId
+    );
 
-const jumlah = parseInt(r.jumlah);
-const harga = r.harga ? Number(r.harga) : 0;
+    const jumlah = parseInt(r.jumlah) || 0;
+    const harga = r.harga ? Number(r.harga) : 0;
 
-// Insert ke detail barang masuk
-detailInsertPayload.push({
-  id_barang_masuk: masuk.id,
-  id_barang: barangId,
-  jumlah,
-  harga_masuk: harga,
-});
+    detailInsertPayload.push({
+      id_barang_masuk: masuk.id,
+      id_barang: barangId,
+      jumlah,
+      harga_masuk: harga,
+    });
 
-// UPDATE STOK + AMBIL ID
-const stokGudangId = await updateStokGudang(barangId, gudangId, jumlah);
+    const stokGudangId = await updateStokGudang(
+      barangId,
+      gudangId,
+      jumlah
+    );
 
-// INSERT SERIAL NUMBER
-if (r.serialNumbers && r.serialNumbers.length > 0) {
-  const serialInsert = r.serialNumbers
-    .filter((sn) => sn && sn.trim() !== "")
-    .map((sn) => ({
-      sn,
-      stok_gudang_id: stokGudangId,
-      status: "available",
-    }));
-
-  const { error: snErr } = await supabase
-    .from("serial_number")
-    .insert(serialInsert);
-
-  if (snErr) throw snErr;
-}
-
+    preparedRows.push({
+      barangId,
+      stokGudangId,
+      serialNumbers: r.serialNumbers || [],
+    });
   }
 
-  const { error: dtErr } = await supabase
+  // =============================
+  // INSERT DETAIL BARANG MASUK
+  // =============================
+  const { data: insertedDetails, error: dtErr } = await supabase
     .from("DetailBarangMasuk")
-    .insert(detailInsertPayload);
+    .insert(detailInsertPayload)
+    .select();
 
   if (dtErr) throw dtErr;
 
+  // =============================
+  // INSERT SERIAL NUMBER + detail_barang_masuk_id
+  // =============================
+  for (let i = 0; i < insertedDetails.length; i++) {
+    const detail = insertedDetails[i];
+    const prep = preparedRows[i];
+
+    if (prep.serialNumbers && prep.serialNumbers.length > 0) {
+      const serialInsert = prep.serialNumbers
+        .filter((sn) => sn && sn.trim() !== "")
+        .map((sn) => ({
+          sn: sn,
+          stok_gudang_id: prep.stokGudangId,       // tetap
+          detail_barang_masuk_id: detail.id,       // 🔥 TAMBAHAN INTI
+          status: "available",
+        }));
+
+      if (serialInsert.length > 0) {
+        const { error: snErr } = await supabase
+          .from("serial_number")
+          .insert(serialInsert);
+
+        if (snErr) throw snErr;
+      }
+    }
+  }
+
   return masuk.id;
 }
+
