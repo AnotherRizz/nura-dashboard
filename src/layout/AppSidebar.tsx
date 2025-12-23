@@ -27,7 +27,7 @@ type NavItem = {
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
-type MenuType = "main" | "others" | "general";
+type MenuType = "main" | "general" | "others" | "inventory" | "device";
 
 const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -52,53 +52,9 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
       icon: <GridIcon />,
       subItems: [
         { name: "Dashboard Inventory", path: "/dashboard-inventory" },
-        // { name: "Dashboard Monitoring", path: "/" },
+        { name: "Dashboard Monitoring", path: "/" },
       ],
     },
-    {
-      name: "Master Data",
-      icon: <BoxCubeIcon />,
-      subItems: [
-        { name: "Barang", path: "/barang", pro: true },
-        { name: "Supplier", path: "/supplier" },
-        { name: "Kategori", path: "/kategori" },
-      ],
-    },
-    {
-      name: "Inventory",
-      icon: <RectangleStackIcon />,
-      subItems: [
-        { name: "Warehouse", path: "/warehouse" },
-        { name: "Stok In", path: "/barang-masuk" },
-        { name: "Stok Out", path: "/barang-keluar" },
-      ],
-    },
-    {
-      name: "Mikrotik",
-      icon: <ServerStackIcon />,
-      subItems: [
-        { name: "Devices", path: "/device" },
-        { name: "Monitoring", path: "/monitoring" },
-      ],
-    },
-    {
-      name: "Letters",
-      icon: <EnvelopeOpenIcon />,
-      subItems: [
-        { name: "Purchase Order", path: "/purchase-order" },
-
-      ],
-    },
-    {
-      name: "Summary",
-      icon: <DocumentTextIcon />,
-      subItems: [
-        { name: "Log Device", path: "/log", pro: true },
-        { name: "Summary", path: "/summary" },
-        { name: "Gangguan", path: "/gangguan" },
-      ],
-    },
-    { icon: <MapIcon />, name: "Side Area", path: "/area" },
   ];
 
   const generalItems: NavItem[] = [
@@ -123,56 +79,99 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
     { icon: <UserGroupIcon />, name: "Account List", path: "/users" },
     { icon: <Cog6ToothIcon />, name: "Settings", path: "/profile" },
   ];
+  const inventoryItems: NavItem[] = [
+    {
+      name: "Master Data",
+      icon: <BoxCubeIcon />,
+      subItems: [
+        { name: "Barang", path: "/barang", pro: true },
+        { name: "Supplier", path: "/supplier" },
+        { name: "Kategori", path: "/kategori" },
+      ],
+    },
+    {
+      name: "Inventory",
+      icon: <RectangleStackIcon />,
+      subItems: [
+        { name: "Warehouse", path: "/warehouse" },
+        { name: "Stok In", path: "/barang-masuk" },
+        { name: "Stok Out", path: "/barang-keluar" },
+      ],
+    },
+    {
+      name: "Letters",
+      icon: <EnvelopeOpenIcon />,
+      subItems: [{ name: "Purchase Order", path: "/purchase-order" }],
+    },
+  ];
+
+  const deviceItems: NavItem[] = [
+    {
+      name: "Mikrotik",
+      icon: <ServerStackIcon />,
+      subItems: [
+        { name: "Devices", path: "/device" },
+        { name: "Monitoring", path: "/monitoring" },
+      ],
+    },
+
+    {
+      name: "Summary",
+      icon: <DocumentTextIcon />,
+      subItems: [
+        { name: "Log Device", path: "/log", pro: true },
+        { name: "Summary", path: "/summary" },
+        { name: "Gangguan", path: "/gangguan" },
+      ],
+    },
+    { icon: <MapIcon />, name: "Side Area", path: "/area" },
+  ];
+
+  let filteredinventoryItems = inventoryItems;
+  let filteredDeviceItems = deviceItems;
 
   let filteredNavItems = navItems;
   let filteredGeneralItems = generalItems;
   let filteredOthersItems = othersItems;
 
   // ================================
-  // ROLE FILTERING
+  // ROLE FILTERING (FIXED)
   // ================================
 
-  // Default semua kosong
+  // reset semua
   filteredNavItems = [];
   filteredGeneralItems = [];
   filteredOthersItems = [];
+  filteredinventoryItems = [];
+  filteredDeviceItems = [];
 
-  if (role === "admin") {
-    // 🔹 Admin bisa semua
-    filteredNavItems = navItems;
-    filteredGeneralItems = generalItems;
-    filteredOthersItems = othersItems;
-  } else if (role === "noc") {
-    // 🔹 NOC hanya Devices, Monitoring, Barang, Summary
+  switch (role) {
+    case "admin":
+      // ✅ admin lihat semua
+      filteredNavItems = navItems;
+      filteredGeneralItems = generalItems;
+      filteredOthersItems = othersItems;
+      filteredinventoryItems = inventoryItems;
+      filteredDeviceItems = deviceItems;
+      break;
 
-    filteredNavItems = navItems.filter((item) =>
-      ["Dashboard Overview", "Inventory", "Letters", "Master Data"].includes(
-        item.name
-      )
-    );
+    case "noc":
+      // ✅ noc: inventory + device
+      filteredNavItems = navItems;
+      filteredinventoryItems = inventoryItems;
+      filteredDeviceItems = deviceItems;
+      break;
 
-    filteredGeneralItems = []; // tidak perlu
-    filteredOthersItems = []; // noc tidak perlu paket, regis, akun
-  } else if (role === "cs") {
-    // 🔹 CS hanya Paket dan User Registrasi
+    case "cs":
+      // ✅ cs: paket + user registrasi
+      filteredOthersItems = othersItems.filter((item) =>
+        ["Paket Internet", "User Registration"].includes(item.name)
+      );
+      break;
 
-    filteredNavItems = []; // CS tidak perlu main menu
-    filteredGeneralItems = [];
-    filteredOthersItems = othersItems.filter((item) =>
-      ["Paket Internet", "User Registration"].includes(item.name)
-    );
-  } else if (role === "user") {
-    // 🔹 User biasa hanya dashboard + barang
-
-    filteredNavItems = navItems.filter((item) =>
-      ["Dashboard"].includes(item.name)
-    );
-
-    filteredGeneralItems = generalItems.filter((item) =>
-      ["Data Barang"].includes(item.name)
-    );
-
-    filteredOthersItems = []; // tidak perlu paket & user regis
+    default:
+      // role lain → tidak dapat apa-apa
+      break;
   }
 
   const isActive = useCallback(
@@ -182,28 +181,33 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
 
   useEffect(() => {
     let submenuMatched = false;
-    (["main", "others", "general"] as MenuType[]).forEach((menuType) => {
+
+    (
+      ["main", "others", "general", "inventory", "device"] as MenuType[]
+    ).forEach((menuType) => {
       const items =
         menuType === "main"
           ? filteredNavItems
           : menuType === "others"
           ? filteredOthersItems
-          : filteredGeneralItems;
+          : menuType === "general"
+          ? filteredGeneralItems
+          : menuType === "inventory"
+          ? filteredinventoryItems
+          : filteredDeviceItems;
 
       items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({ type: menuType, index });
-              submenuMatched = true;
-            }
-          });
-        }
+        nav.subItems?.forEach((subItem) => {
+          if (isActive(subItem.path)) {
+            submenuMatched = true; // ✅ INI YANG KURANG
+            setOpenSubmenu({ type: menuType, index });
+          }
+        });
       });
     });
 
     if (!submenuMatched) setOpenSubmenu(null);
-  }, [location, isActive, role]);
+  }, [location.pathname, role]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -399,6 +403,18 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
               </h2>
               {renderMenuItems(filteredNavItems, "main")}
             </div>
+            {filteredinventoryItems.length > 0 && (
+              <div>
+                <h2 className="mb-4 text-xs uppercase text-gray-400">
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "inventory"
+                  ) : (
+                    <HorizontaLDots />
+                  )}
+                </h2>
+                {renderMenuItems(filteredinventoryItems, "inventory")}
+              </div>
+            )}
 
             {filteredGeneralItems.length > 0 && (
               <div>
@@ -417,7 +433,18 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
                 {renderMenuItems(filteredGeneralItems, "general")}
               </div>
             )}
-
+            {filteredDeviceItems.length > 0 && (
+              <div>
+                <h2 className="mb-4 text-xs uppercase text-gray-400">
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "Device"
+                  ) : (
+                    <HorizontaLDots />
+                  )}
+                </h2>
+                {renderMenuItems(filteredDeviceItems, "device")}
+              </div>
+            )}
             {filteredOthersItems.length > 0 && (
               <div>
                 <h2
