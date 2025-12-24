@@ -708,18 +708,19 @@ export default function StokOutForm({
           </button>
 
           {/* Submit */}
-          <div className="flex gap-3 mt-4">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-              Simpan
-            </button>
+          <div className="flex gap-3 justify-end mt-4">
+           
 
             <button
               type="button"
               onClick={onCancel}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+              className="bg-red-600 text-white px-4 py-2 rounded-lg">
               Batal
+            </button>
+             <button
+              type="submit"
+              className=" bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600  text-white px-4 py-2 rounded-lg">
+              Simpan
             </button>
           </div>
         </form>

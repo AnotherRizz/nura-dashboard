@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { submitBarangMasuk } from "../../services/tambahStokService";
 import { updatePOStatus } from "../../services/poService";
+import { formatRupiah, parseRupiah } from "../../services/currencyService";
 
 interface Barang {
   id: string;
@@ -264,12 +265,7 @@ export default function TambahStokForm() {
     setLoading(true);
 
     try {
-      await submitBarangMasuk(
-        rows,
-        selectedGudangId,
-        keterangan,
-        barangList
-      );
+      await submitBarangMasuk(rows, selectedGudangId, keterangan, barangList);
 
       if (poSearch) {
         const po = poList.find((p) => p.no_po === poSearch);
@@ -648,12 +644,20 @@ export default function TambahStokForm() {
                   <label className="text-sm font-semibold dark:text-white/80">
                     Harga / Item
                   </label>
+
                   <input
-                    type="number"
-                    value={row.harga}
-                    onChange={(e) => updateRow(index, "harga", e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatRupiah(row.harga)}
+                    onChange={(e) =>
+                      updateRow(
+                        index,
+                        "harga",
+                        parseRupiah(e.target.value).toString()
+                      )
+                    }
                     className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                    placeholder="15000"
+                    placeholder="1.000.000"
                   />
                 </div>
               </div>
@@ -736,16 +740,23 @@ export default function TambahStokForm() {
         <button
           type="button"
           onClick={addRow}
-          className="px-4 py-2 bg-gray-500 text-white rounded-md shadow hover:bg-gray-600">
+          className="px-4 py-1 text-xs bg-orange-600 text-white rounded-md shadow ">
           + add row
         </button>
 
-        <div className="flex justify-end pt-3">
+        <div className="flex justify-end gap-2 pt-3">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => navigate("/barang-masuk")}
+            className="px-5 py-2  bg-red-600 text-white rounded-lg shadow disabled:opacity-50">
+            Batal
+          </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow disabled:opacity-50">
-            {loading ? "Menyimpan..." : "Simpan Semua"}
+            className="px-5 py-2  bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600  text-white rounded-lg shadow disabled:opacity-50">
+            {loading ? "Menyimpan..." : "Simpan"}
           </button>
         </div>
       </form>

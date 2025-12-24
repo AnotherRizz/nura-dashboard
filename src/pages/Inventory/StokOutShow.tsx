@@ -39,7 +39,6 @@ interface DetailBarang {
   };
 }
 
-
 interface BarangKeluar {
   id: string;
   tanggal_keluar: string;
@@ -61,9 +60,10 @@ export default function StokOutShow() {
   const [openPreview, setOpenPreview] = useState(false);
 
   const fetchData = async () => {
-  const { data, error } = await supabase
-  .from("barang_keluar")
-  .select(`
+    const { data, error } = await supabase
+      .from("barang_keluar")
+      .select(
+        `
     id,
     tanggal_keluar,
     pic,
@@ -90,10 +90,10 @@ export default function StokOutShow() {
         tipe
       )
     )
-  `)
-  .eq("id", id)
-  .single();
-
+  `
+      )
+      .eq("id", id)
+      .single();
 
     if (error) console.error(error);
 
@@ -171,7 +171,6 @@ export default function StokOutShow() {
           </h2>
 
           <div className="space-y-3 ">
-
             <div className="grid grid-cols-[150px_1fr]">
               <span className="font-medium text-gray-600 dark:text-white/70">
                 Tanggal Keluar
@@ -249,10 +248,10 @@ export default function StokOutShow() {
                   Jumlah
                 </TableCell>
                 <TableCell
-  isHeader
-  className="px-5 py-4 text-start dark:text-white">
-  Serial Number
-</TableCell>
+                  isHeader
+                  className="px-5 py-4 text-start dark:text-white">
+                  Serial Number
+                </TableCell>
 
                 <TableCell
                   isHeader
@@ -297,24 +296,24 @@ export default function StokOutShow() {
                       {d.jumlah} {d.barang.satuan}
                     </TableCell>
                     <TableCell className="px-4 py-3 dark:text-white/80">
-  {d.serial_number && d.serial_number.length > 0 ? (
-    <div className="flex flex-wrap gap-1">
-      {d.serial_number.map((sn) => (
-        <span
-          key={sn.id}
-          className="
+                      {d.serial_number && d.serial_number.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {d.serial_number.map((sn) => (
+                            <span
+                              key={sn.id}
+                              className="
             px-2 py-0.5 text-sm rounded-full
-            bg-gray-400/30 text-gray-600
-            line-through italic
+            bg-orange-400/30 text-orange-600
+           
           ">
-          {sn.sn}
-        </span>
-      ))}
-    </div>
-  ) : (
-    "-"
-  )}
-</TableCell>
+                              {sn.sn}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
 
                     <TableCell className="px-4 py-3 dark:text-white/80">
                       Rp {d.harga_keluar.toLocaleString("id-ID")}

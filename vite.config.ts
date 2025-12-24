@@ -4,6 +4,7 @@ import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig({
+  
    base: '/',
   plugins: [
     react(),
@@ -23,5 +24,7 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+     host: true,
+    port: Number(process.env.VITE_PORT) || 5173,
   },
 });

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import "flatpickr/dist/themes/dark.css";
+import { formatRupiah, parseRupiah } from "../../services/currencyService";
 
 interface Supplier {
   id: string;
@@ -206,88 +207,86 @@ export default function PurchaseOrderForm() {
   // Submit
   // -----------------------
   const handleSubmit = async (e: any) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!supplierId) return toast.error("Supplier wajib dipilih!");
-  if (!noPo) return toast.error("Nomor PO wajib diisi!");
-  if (!tanggal) return toast.error("Tanggal wajib diisi!");
-  if (details.some((d) => !d.barang_id))
-    return toast.error("Semua barang wajib dipilih!");
-  if (!gudangId) return toast.error("Gudang tujuan wajib dipilih!");
+    if (!supplierId) return toast.error("Supplier wajib dipilih!");
+    if (!noPo) return toast.error("Nomor PO wajib diisi!");
+    if (!tanggal) return toast.error("Tanggal wajib diisi!");
+    if (details.some((d) => !d.barang_id))
+      return toast.error("Semua barang wajib dipilih!");
+    if (!gudangId) return toast.error("Gudang tujuan wajib dipilih!");
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    let poId = id;
+    try {
+      let poId = id;
 
-    // ⬅ letakkan di sini agar bisa dipakai INSERT dan UPDATE
-    const cleanTerms = terms.filter((t) => t.trim() !== "");
+      // ⬅ letakkan di sini agar bisa dipakai INSERT dan UPDATE
+      const cleanTerms = terms.filter((t) => t.trim() !== "");
 
-    if (!isEdit) {
-      const { data: po, error } = await supabase
-        .from("purchase_order")
-        .insert({
-          no_po: noPo,
-          tanggal,
-          supplier_id: supplierId,
-          gudang_id: gudangId,
-          keterangan,
-          ketentuan: cleanTerms, // JSONB
-          status: "created",
-        })
-        .select()
-        .single();
+      if (!isEdit) {
+        const { data: po, error } = await supabase
+          .from("purchase_order")
+          .insert({
+            no_po: noPo,
+            tanggal,
+            supplier_id: supplierId,
+            gudang_id: gudangId,
+            keterangan,
+            ketentuan: cleanTerms, // JSONB
+            status: "created",
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
-      // @ts-ignore
-      poId = po.id;
+        if (error) throw error;
+        // @ts-ignore
+        poId = po.id;
+      } else {
+        const { error: updErr } = await supabase
+          .from("purchase_order")
+          .update({
+            no_po: noPo,
+            tanggal,
+            supplier_id: supplierId,
+            gudang_id: gudangId,
+            keterangan,
+            ketentuan: cleanTerms, // update JSONB
+          })
+          .eq("id", id);
 
-    } else {
-      const { error: updErr } = await supabase
-        .from("purchase_order")
-        .update({
-          no_po: noPo,
-          tanggal,
-          supplier_id: supplierId,
-          gudang_id: gudangId,
-          keterangan,
-          ketentuan: cleanTerms, // update JSONB
-        })
-        .eq("id", id);
+        if (updErr) throw updErr;
 
-      if (updErr) throw updErr;
+        const { error: delErr } = await supabase
+          .from("detail_purchase_order")
+          .delete()
+          .eq("purchase_order_id", id);
 
-      const { error: delErr } = await supabase
+        if (delErr) throw delErr;
+      }
+
+      const detailInsert = details.map((d) => ({
+        purchase_order_id: poId,
+        id_barang: d.barang_id,
+        jumlah: Number(d.qty),
+        harga_satuan: Number(d.harga),
+      }));
+
+      const { error: detErr } = await supabase
         .from("detail_purchase_order")
-        .delete()
-        .eq("purchase_order_id", id);
+        .insert(detailInsert);
 
-      if (delErr) throw delErr;
+      if (detErr) throw detErr;
+
+      toast.success(isEdit ? "PO berhasil diupdate!" : "PO berhasil dibuat!");
+      navigate("/purchase-order");
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal menyimpan PO");
+    } finally {
+      setLoading(false);
     }
-
-    const detailInsert = details.map((d) => ({
-      purchase_order_id: poId,
-      id_barang: d.barang_id,
-      jumlah: Number(d.qty),
-      harga_satuan: Number(d.harga),
-    }));
-
-    const { error: detErr } = await supabase
-      .from("detail_purchase_order")
-      .insert(detailInsert);
-
-    if (detErr) throw detErr;
-
-    toast.success(isEdit ? "PO berhasil diupdate!" : "PO berhasil dibuat!");
-    navigate("/purchase-order");
-
-  } catch (err) {
-    console.error(err);
-    toast.error("Gagal menyimpan PO");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     if (!gudangId) return;
@@ -490,8 +489,8 @@ export default function PurchaseOrderForm() {
             <button
               type="button"
               onClick={() => setTerms([...terms, ""])}
-              className="px-3 py-1 bg-teal-600 text-white rounded">
-              + Tambah Ketentuan
+              className="px-3 py-1 text-xs bg-orange-600 text-white rounded">
+              + Ketentuan
             </button>
           </div>
 
@@ -620,23 +619,30 @@ export default function PurchaseOrderForm() {
                     placeholder="Volume"
                     className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
+                  <label className="text-xs text-gray-400 dark:text-white/40">
+                    *jumlah barang yang dibutuhkan
+                  </label>
                 </div>
 
                 <div>
                   <label className="text-sm dark:text-white/80">Harga</label>
+
                   <input
-                    type="number"
-                    value={d.harga}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatRupiah(d.harga)}
                     onChange={(e) =>
-                      updateDetail(
-                        index,
-                        "harga",
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
+                      updateDetail(index, "harga", parseRupiah(e.target.value))
                     }
-                    placeholder="Harga"
-                    className="mt-1 w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                    placeholder="1.000.000"
+                    className="mt-1 w-full border rounded px-3 py-2 
+               dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
+
+                  <label className="text-xs text-gray-400 dark:text-white/40">
+                    *harga dapat disesuaikan (tidak akan berpengaruh terhadap
+                    data master)
+                  </label>
                 </div>
 
                 <div>
@@ -656,17 +662,24 @@ export default function PurchaseOrderForm() {
           <button
             type="button"
             onClick={addRow}
-            className="px-4 py-2 bg-teal-600 text-white rounded shadow">
-            + Tambah Barang
+            className="px-4 text-xs py-1 bg-orange-600 text-white rounded shadow">
+            + Barang
           </button>
         </div>
 
         {/* SUBMIT */}
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 gap-2">
+          <button
+            type="button"
+            onClick={() => navigate("/purchase-order")}
+            disabled={loading}
+            className="px-6 py-2 bg-red-600   text-white rounded-xl shadow disabled:opacity-50">
+            Batal
+          </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded shadow disabled:opacity-50">
+            className="px-6 py-2 bg-blue-500 dark:bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600  text-white rounded-xl shadow disabled:opacity-50">
             {loading ? "Menyimpan..." : isEdit ? "Update PO" : "Simpan PO"}
           </button>
         </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router";
+import {  useNavigate, useParams } from "react-router";
 import { supabase } from "../../services/supabaseClient";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import PurchaseOrderPreview from "./purchaseOrderPreview";
+import "../../style/po-print.css";
 
 interface Detail {
   id: string;
@@ -29,7 +29,7 @@ export default function PurchaseOrderShow() {
   const [data, setData] = useState<any>(null);
   const [details, setDetails] = useState<Detail[]>([]);
   const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState(false);
+   const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -111,7 +111,18 @@ export default function PurchaseOrderShow() {
   return (
     <div className="p-1 max-w-4xl mx-auto ">
       <PageBreadcrumb pageTitle="Purchase Order Detail" />
-
+      <div className="mb-4 text-sm flex max-w-3xl justify-between ">
+        <button
+          onClick={() => navigate("/purchase-order")}
+          className="px-4 py-2 text-gray-600 rounded">
+          Kembali
+        </button>
+        <button
+          onClick={() => window.print()}
+          className="px-4 py-2 bg-red-600 text-white rounded">
+          Preview PDF
+        </button>
+      </div>
       <section
         ref={printRef}
         id="po-print"
@@ -121,7 +132,7 @@ export default function PurchaseOrderShow() {
           lineHeight: "1.35",
         }}
         className="bg-white shadow px-10 pt-20 pb-10 max-w-3xl">
-        <div className="flex po-page flex-col gap-3 mt-20 text-sm mb-2">
+        <div className="flex po-page flex-col gap-3 mt-5 text-sm mb-2">
           <div className="text-sm">
             Tangerang Selatan,{" "}
             {new Date(data.tanggal).toLocaleDateString("id-ID", {
@@ -157,23 +168,33 @@ export default function PurchaseOrderShow() {
 
         {/* TABEL DETAIL */}
         <table className="po-table w-full border border-black border-collapse text-[12px] mt-4">
+          <colgroup>
+            <col style={{ width: "35px" }} />
+            <col style={{ width: "260px" }} />
+            <col style={{ width: "60px" }} />
+            <col style={{ width: "70px" }} />
+            <col style={{ width: "110px" }} />
+            <col style={{ width: "120px" }} />
+            <col style={{ width: "140px" }} />
+          </colgroup>
+
           <thead>
-            <tr className="font-semibold text-center">
-              <th className="border border-black w-[35px]">No</th>
+            <tr>
+              <th className="border border-black">No</th>
               <th className="border border-black">Designator</th>
-              <th className="border border-black w-[60px]">Satuan</th>
-              <th className="border border-black w-[70px]">Volume</th>
-              <th className="border border-black w-[110px]">
+              <th className="border border-black">Satuan</th>
+              <th className="border border-black">Volume</th>
+              <th className="border border-black">
                 Harga Satuan
                 <br />
                 Rp.
               </th>
-              <th className="border border-black w-[120px]">
+              <th className="border border-black">
                 Jumlah Harga
                 <br />
                 Rp.
               </th>
-              <th className="border border-black w-[140px]">Keterangan</th>
+              <th className="border border-black">Keterangan</th>
             </tr>
           </thead>
 
@@ -202,7 +223,7 @@ export default function PurchaseOrderShow() {
                 {i === 0 && (
                   <td
                     rowSpan={totalRows}
-                    className="border border-black align-top px-2">
+                    className="border border-black border-b-0 text-center align-center px-2">
                     {data.keterangan}
                   </td>
                 )}
@@ -245,23 +266,28 @@ export default function PurchaseOrderShow() {
           </tbody>
         </table>
 
-        <div className=" grid grid-cols-5  ">
+        <div className=" grid grid-cols-6  ">
           {/* INFORMASI LAIN */}
-          <div className=" text-xs col-span-3  ">
+          <div className="text-xs col-span-3">
             <b>Syarat dan Ketentuan:</b>
 
             {Array.isArray(data.ketentuan) && data.ketentuan.length > 0 ? (
-              data.ketentuan.map((item: string, idx: number) => (
-                <div key={idx}>- {item}</div>
-              ))
+              <div className="po-terms-grid mt-1">
+                {data.ketentuan.map((item: string, idx: number) => (
+                  <div key={idx} className="po-term-item">
+                    - {item}
+                  </div>
+                ))}
+              </div>
             ) : (
               <div>- Tidak ada ketentuan</div>
             )}
           </div>
+
           {/* DP / SISA */}
-          <div className="mt-1 col-span-2 ">
-            <table className="text-sm ">
-              <tbody>
+          <div className="mt-1 col-span-3 ">
+            <table className="text-sm text-right">
+              <tbody >
                 {/* JENIS PEMBAYARAN */}
                 <tr>
                   <td className="px-2 py-1 text-[12px]">
@@ -272,7 +298,7 @@ export default function PurchaseOrderShow() {
                       ? `DP ${termDP.dpPercent}%`
                       : "DP 10%"}
                   </td>
-                  <td className="px-2 py-1 text-[12px] text-right">
+                  <td className="px-8 py-1 text-[12px] text-right">
                     Rp {dp.toLocaleString("id-ID")}
                   </td>
                 </tr>
@@ -282,7 +308,7 @@ export default function PurchaseOrderShow() {
                   <td className="px-2 py-1 text-[12px] -mt-7">
                     Sisa Pembayaran
                   </td>
-                  <td className="px-2 py-1 text-[12px] text-right">
+                  <td className="px-8 py-1 text-[12px] text-right">
                     Rp {sisa.toLocaleString("id-ID")}
                   </td>
                 </tr>
@@ -303,7 +329,7 @@ export default function PurchaseOrderShow() {
           )
         </div>
 
-        <div className="text-xs mt-3">
+        <div className="text-xs my-8">
           Demikian Purchase Order ini Kami sampaikan, atas perhatian dan kerja
           samanya diucapkan terima.
         </div>
@@ -312,13 +338,13 @@ export default function PurchaseOrderShow() {
           <br />
           <b>PT. LINEA GLOBAL TEKNOLOGI</b>
         </div>
-        <div className="text-xs mt-10">
+        <div className="text-xs mt-12">
           <br />
           <b>Bintang Aryo Dharmawan</b>
           <br />
           Direktur
         </div>
-        <div className="text-xs mt-3 mb-20">
+        <div className="text-xs mt-2 mb-20">
           Catatan:
           <br />
           Apabila barang yang di Order/PO tidak sesuai dengn Speck, maka akan
@@ -326,29 +352,6 @@ export default function PurchaseOrderShow() {
           timbul akan dibebankan kepada Pabrik
         </div>
       </section>
-      <button
-        onClick={() => setPreview(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded">
-        Preview PDF
-      </button>
-
-      {preview && (
-        <PurchaseOrderPreview
-          onClose={() => setPreview(false)}
-          data={data}
-          details={details}
-          subtotal={subtotal}
-          ppn={ppn}
-          total={total}
-          dp={dp}
-          sisa={sisa}
-          termLabel={
-            termDP?.dpPercent === 100
-              ? "Dibayar Lunas"
-              : `DP ${termDP?.dpPercent ?? 10}%`
-          }
-        />
-      )}
     </div>
   );
 }

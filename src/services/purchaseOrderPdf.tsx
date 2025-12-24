@@ -1,36 +1,29 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 /* =====================
-    TYPES
+   TYPES
 ===================== */
-
-export interface Supplier {
-  nama_supplier: string;
-  nama_pic?: string | null;
-}
-
-export interface PurchaseOrder {
-  no_po: string;
-  tanggal: string;
-  keterangan?: string | null;
-  supplier: Supplier;
-  ketentuan?: string[];
-}
-
-export interface PODetail {
-  id: string;
-  jumlah: number;
-  harga_satuan: number;
-  subtotal: number;
-  barang: {
-    nama_barang: string;
-    satuan: string;
-  };
-}
-
 export interface PurchaseOrderPDFProps {
-  data: PurchaseOrder;
-  details: PODetail[];
+  data: {
+    no_po: string;
+    tanggal: string;
+    keterangan?: string | null;
+    supplier: {
+      nama_supplier: string;
+      nama_pic?: string | null;
+    };
+    ketentuan?: string[];
+  };
+  details: {
+    id: string;
+    jumlah: number;
+    harga_satuan: number;
+    subtotal: number;
+    barang: {
+      nama_barang: string;
+      satuan: string;
+    };
+  }[];
   subtotal: number;
   ppn: number;
   total: number;
@@ -40,9 +33,8 @@ export interface PurchaseOrderPDFProps {
 }
 
 /* =====================
-    DOCUMENT
+   DOCUMENT
 ===================== */
-
 export function PurchaseOrderPDF({
   data,
   details,
@@ -53,9 +45,6 @@ export function PurchaseOrderPDF({
   sisa,
   termLabel = "DP 10%",
 }: PurchaseOrderPDFProps) {
-  const ROW_HEIGHT = 26;
-  const safeDetails = details.length > 0 ? details : [{} as PODetail];
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -87,9 +76,8 @@ export function PurchaseOrderPDF({
           sebagai berikut:
         </Text>
 
-        {/* ================= TABLE ================= */}
+        {/* ================= TABLE HEADER ================= */}
         <View style={styles.table}>
-          {/* HEADER */}
           <View style={styles.tr}>
             <Text style={styles.thNo}>No</Text>
             <Text style={styles.thDesignator}>Designator</Text>
@@ -100,45 +88,40 @@ export function PurchaseOrderPDF({
             <Text style={styles.thKet}>Keterangan</Text>
           </View>
 
-          {/* BODY */}
-          <View style={styles.tableBodyRow}>
-            {/* LEFT */}
+          {/* ================= TABLE BODY ================= */}
+          <View style={styles.bodyRow}>
+            {/* LEFT ITEMS */}
             <View>
-              {safeDetails.map((d, i) => (
-                <View key={i} style={[styles.tr, { height: ROW_HEIGHT }]}>
-                  <Text style={styles.tdNo}>{details.length ? i + 1 : ""}</Text>
+              {details.map((d, i) => (
+                <View key={d.id} style={styles.tr}>
+                  <Text style={styles.tdNo}>{i + 1}</Text>
                   <Text style={styles.tdDesignator}>
-                    {d.barang?.nama_barang || ""}
+                    {d.barang.nama_barang}
                   </Text>
-                  <Text style={styles.tdSat}>{d.barang?.satuan || ""}</Text>
-                  <Text style={styles.tdVol}>
-                    {d.jumlah?.toLocaleString("id-ID") || ""}
-                  </Text>
+                  <Text style={styles.tdSat}>{d.barang.satuan}</Text>
+                  <Text style={styles.tdVol}>{d.jumlah}</Text>
                   <Text style={styles.tdHarga}>
-                    {d.harga_satuan?.toLocaleString("id-ID") || ""}
+                    {d.harga_satuan.toLocaleString("id-ID")}
                   </Text>
                   <Text style={styles.tdJumlah}>
-                    {d.subtotal?.toLocaleString("id-ID") || ""}
+                    {d.subtotal.toLocaleString("id-ID")}
                   </Text>
                 </View>
               ))}
             </View>
 
-            {/* RIGHT (KETERANGAN) */}
-            <View
-              style={[
-                styles.keteranganBox,
-                { height: ROW_HEIGHT * safeDetails.length },
-              ]}>
+            {/* RIGHT KETERANGAN */}
+            <View style={styles.keteranganBox}>
               <Text style={styles.keteranganText}>
                 {data.keterangan || "-"}
               </Text>
             </View>
           </View>
+        </View>
 
-          {/* TOTALS */}
+        {/* ================= TOTAL TABLE ================= */}
+        <View style={styles.totalTable}>
           <View style={styles.tr}>
-            <Text style={styles.empty5} />
             <Text style={styles.totalLabel}>Jumlah</Text>
             <Text style={styles.totalValue}>
               {subtotal.toLocaleString("id-ID")}
@@ -146,13 +129,13 @@ export function PurchaseOrderPDF({
           </View>
 
           <View style={styles.tr}>
-            <Text style={styles.empty5} />
             <Text style={styles.totalLabel}>PPN 11%</Text>
-            <Text style={styles.totalValue}>{ppn.toLocaleString("id-ID")}</Text>
+            <Text style={styles.totalValue}>
+              {ppn.toLocaleString("id-ID")}
+            </Text>
           </View>
 
           <View style={styles.tr}>
-            <Text style={styles.empty5} />
             <Text style={styles.totalLabelBold}>TOTAL</Text>
             <Text style={styles.totalValueBold}>
               {total.toLocaleString("id-ID")}
@@ -160,19 +143,19 @@ export function PurchaseOrderPDF({
           </View>
         </View>
 
-        {/* SYARAT & PAYMENT (SEJAJAR) */}
-        <View style={styles.syaratPaymentRow}>
-          {/* SYARAT */}
+        {/* ================= SYARAT & PAYMENT ================= */}
+        <View style={styles.bottomRow}>
           <View style={styles.syaratBox}>
             <Text style={styles.bold}>Syarat dan Ketentuan:</Text>
             {data.ketentuan && data.ketentuan.length > 0 ? (
-              data.ketentuan.map((k, i) => <Text key={i}>- {k}</Text>)
+              data.ketentuan.map((k, i) => (
+                <Text key={i}>- {k}</Text>
+              ))
             ) : (
               <Text>- Tidak ada ketentuan</Text>
             )}
           </View>
 
-          {/* PAYMENT */}
           <View style={styles.paymentBox}>
             <View style={styles.paymentRow}>
               <Text>{termLabel}</Text>
@@ -180,7 +163,9 @@ export function PurchaseOrderPDF({
             </View>
             <View style={styles.paymentRow}>
               <Text style={styles.bold}>Sisa Pembayaran</Text>
-              <Text style={styles.bold}>Rp {sisa.toLocaleString("id-ID")}</Text>
+              <Text style={styles.bold}>
+                Rp {sisa.toLocaleString("id-ID")}
+              </Text>
             </View>
           </View>
         </View>
@@ -200,21 +185,14 @@ export function PurchaseOrderPDF({
           Bintang Aryo Dharmawan{"\n"}
           Direktur
         </Text>
-        <Text style={{ marginTop: 10 }}>
-          Catatan:
-          {"\n"}Apabila barang yang di Order/PO tidak sesuai dengan Spec, maka
-          akan dikembalikan dan biaya-biaya yang timbul akan dibebankan kepada
-          Pabrik.
-        </Text>
       </Page>
     </Document>
   );
 }
 
 /* =====================
-    STYLES
-  ===================== */
-
+   STYLES
+===================== */
 const styles = StyleSheet.create({
   page: {
     paddingTop: 70,
@@ -226,192 +204,82 @@ const styles = StyleSheet.create({
 
   bold: { fontWeight: "bold" },
 
-  date: { textAlign: "left", marginBottom: 4 },
-  noPo: { marginBottom: 14, fontWeight: "bold" },
+  date: { marginBottom: 4 },
+  noPo: { marginBottom: 12, fontWeight: "bold" },
   text: { marginBottom: 10 },
 
   /* TABLE */
   table: {
     borderWidth: 1,
     borderColor: "#000",
-    marginVertical: 10,
   },
   tr: { flexDirection: "row" },
 
-  /* HEADER */
-  thNo: {
-    width: 30,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  thDesignator: {
-    width: 170,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    fontWeight: "bold",
-  },
-  thSat: {
-    width: 55,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  thVol: {
-    width: 60,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  thHarga: {
-    width: 90,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  thJumlah: {
-    width: 100,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  thKet: { width: 100, padding: 4, borderBottomWidth: 1, fontWeight: "bold" },
+  thNo: { width: 30, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", fontWeight: "bold", padding: 4 },
+  thDesignator: { width: 170, borderRightWidth: 1, borderBottomWidth: 1, fontWeight: "bold", padding: 4 },
+  thSat: { width: 55, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", fontWeight: "bold", padding: 4 },
+  thVol: { width: 60, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", fontWeight: "bold", padding: 4 },
+  thHarga: { width: 90, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", fontWeight: "bold", padding: 4 },
+  thJumlah: { width: 100, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", fontWeight: "bold", padding: 4 },
+  thKet: { width: 100, borderBottomWidth: 1, fontWeight: "bold", padding: 4 },
 
-  /* DATA */
-  tdNo: {
-    width: 30,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-  },
-  tdDesignator: {
-    width: 170,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-  },
-  tdSat: {
-    width: 55,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-  },
-  tdVol: {
-    width: 60,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "center",
-  },
-  tdHarga: {
-    width: 90,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "right",
-  },
-  tdJumlah: {
-    width: 100,
-    padding: 4,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    textAlign: "right",
-  },
-  tableBodyRow: {
-    flexDirection: "row",
-  },
+  tdNo: { width: 30, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", padding: 4 },
+  tdDesignator: { width: 170, borderRightWidth: 1, borderBottomWidth: 1, padding: 4 },
+  tdSat: { width: 55, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", padding: 4 },
+  tdVol: { width: 60, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "center", padding: 4 },
+  tdHarga: { width: 90, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "right", padding: 4 },
+  tdJumlah: { width: 100, borderRightWidth: 1, borderBottomWidth: 1, textAlign: "right", padding: 4 },
+
+  bodyRow: { flexDirection: "row" },
 
   keteranganBox: {
     width: 100,
     borderLeftWidth: 1,
     borderBottomWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
     padding: 6,
+    justifyContent: "flex-start",
   },
-
-  keteranganText: {
-    textAlign: "center",
-    lineHeight: 1.3,
-  },
-
-  /* EMPTY COLSPAN (5 kolom) */
-  empty5: {
-    width: 30 + 170 + 55 + 60 + 90,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-  },
+  keteranganText: { lineHeight: 1.3 },
 
   /* TOTAL */
-  totalLabel: {
-    width: 100,
-    padding: 4,
+  totalTable: {
+    borderLeftWidth: 1,
     borderRightWidth: 1,
     borderBottomWidth: 1,
+  },
+  totalLabel: {
+    width: 505,
+    borderRightWidth: 1,
+    padding: 4,
     textAlign: "right",
   },
   totalValue: {
     width: 100,
     padding: 4,
-    borderBottomWidth: 1,
     textAlign: "right",
   },
   totalLabelBold: {
-    width: 100,
-    padding: 4,
+    width: 505,
     borderRightWidth: 1,
-    borderBottomWidth: 1,
+    padding: 4,
     textAlign: "right",
     fontWeight: "bold",
   },
   totalValueBold: {
     width: 100,
     padding: 4,
-    borderBottomWidth: 1,
     textAlign: "right",
     fontWeight: "bold",
   },
-  syaratPaymentRow: {
+
+  bottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginTop: 2,
-  },
-
-  syaratBox: {
-    width: 300,
-    paddingRight: 10,
-  },
-
-  /* PAYMENT */
-  paymentBox: {
     marginTop: 10,
-    marginLeft: "auto",
-    width: 200,
-    // borderWidth: 1,
-    padding: 6,
   },
-  paymentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
+  syaratBox: { width: 300 },
+  paymentBox: { width: 200 },
+  paymentRow: { flexDirection: "row", justifyContent: "space-between" },
 
-  signature: {
-    marginTop: 60,
-    fontWeight: "bold",
-  },
+  signature: { marginTop: 60, fontWeight: "bold" },
 });

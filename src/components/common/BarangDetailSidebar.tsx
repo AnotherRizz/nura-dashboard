@@ -67,23 +67,43 @@ export default function BarangDetailSidebar({
                   label="Supplier"
                   value={barang.supplier?.nama_supplier}
                 />
-                <DetailItem label="Gudang" value={barang.gudang?.nama_gudang} />
+                <DetailItem
+                  label="Gudang"
+                  value={
+                    barang.gudang_list && barang.gudang_list.length > 0
+                      ? barang.gudang_list
+                          .map((g: any) => g.gudang?.nama_gudang)
+                          .filter(Boolean)
+                          .join(", ")
+                      : "-"
+                  }
+                />
+
                 <DetailItem label="Stok" value={barang.stok} />
                 {barang.serial_numbers && barang.serial_numbers.length > 0 && (
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Serial Number</p>
                     <div className="flex flex-wrap gap-2">
-                      {barang.serial_numbers.map((sn: any) => (
-                        <span
-                          key={sn.id}
-                          className="
-            px-2 py-1 text-xs rounded-full
-            bg-emerald-100 text-emerald-700
-            dark:bg-emerald-900/40 dark:text-emerald-300
-          ">
-                          {sn.sn}
-                        </span>
-                      ))}
+                      {barang.serial_numbers.map((sn: any) => {
+  const isAvailable = sn.status === "available";
+
+  return (
+    <span
+      key={sn.id}
+      className={`
+        px-2 py-1 text-xs rounded-full
+        ${
+          isAvailable
+            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+        }
+      `}
+    >
+      {sn.sn}
+    </span>
+  );
+})}
+
                     </div>
                   </div>
                 )}
@@ -94,7 +114,9 @@ export default function BarangDetailSidebar({
                     barang.harga
                       ? barang.harga.toLocaleString("id-ID", {
                           style: "currency",
-                          currency: "IDR",
+                      currency: "IDR",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
                         })
                       : "-"
                   }

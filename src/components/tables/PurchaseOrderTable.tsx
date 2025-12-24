@@ -63,11 +63,6 @@ export default function PurchaseOrderTable({ data, loading }: any) {
                 Total Harga
               </TableCell>
 
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Status
-              </TableCell>
 
               <TableCell
                 isHeader
@@ -125,20 +120,6 @@ export default function PurchaseOrderTable({ data, loading }: any) {
                     })}
                   </TableCell>
 
-                  {/* Status */}
-                  <TableCell className="px-4 py-3 dark:text-white/80">
-                    <span
-                      className={`px-3 py-1 rounded-lg text-sm 
-                        ${
-                          item.status === "pending"
-                            ? "bg-yellow-500/20 text-yellow-600"
-                            : item.status === "created"
-                            ? "bg-green-500/20 text-green-600"
-                            : "bg-gray-500/20 text-gray-600"
-                        }`}>
-                      {item.status}
-                    </span>
-                  </TableCell>
 
                   {/* Aksi */}
                   <TableCell className="px-4 py-3 dark:text-white/80">
