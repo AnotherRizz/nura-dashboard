@@ -50,6 +50,7 @@ import TambahStokForm from "./components/form/TambahStokForm";
 import PurchaseOrderIndex from "./pages/Letters/PurchaseOrderIndex";
 import PurchaseOrderForm from "./components/form/PurchaseOrderForm";
 import PurchaseOrderShow from "./pages/Letters/PurchaseOrderShow";
+import AllDocuments from "./pages/Letters/AllDocuments";
 // import GuidePage from "./pages/guide/guidePage";
 
 export default function App() {
@@ -94,6 +95,7 @@ export default function App() {
           <Route path="/purchase-order/add" element={<PurchaseOrderForm />} />
           <Route path="/purchase-order/:id" element={<PurchaseOrderShow />} />
           <Route path="/purchase-order/edit/:id" element={<PurchaseOrderForm />} />
+          <Route path="/all-documents" element={<AllDocuments />} />
 
          
 

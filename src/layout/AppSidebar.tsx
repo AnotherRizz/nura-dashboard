@@ -101,7 +101,11 @@ const AppSidebar: React.FC<{ role: string | null }> = ({ role }) => {
     {
       name: "Letters",
       icon: <EnvelopeOpenIcon />,
-      subItems: [{ name: "Purchase Order", path: "/purchase-order" }],
+      subItems: [
+        { name: "Purchase Order", path: "/purchase-order" },
+        { name: "All Documents", path: "/all-documents" },
+
+      ],
     },
   ];
 
