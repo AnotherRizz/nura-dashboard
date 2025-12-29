@@ -12,6 +12,7 @@ import {
 } from "../../../../components/ui/table";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { PrinterIcon } from "@heroicons/react/24/outline";
 
 export default function TabBarang() {
   const [gudangList, setGudangList] = useState<any[]>([]);
@@ -19,6 +20,7 @@ export default function TabBarang() {
   const [loading, setLoading] = useState(false);
   const [dataBarang, setDataBarang] = useState<any[]>([]);
 
+  /* ================= LOAD GUDANG ================= */
   useEffect(() => {
     supabase
       .from("gudang")
@@ -27,6 +29,7 @@ export default function TabBarang() {
       .then(({ data }) => setGudangList(data || []));
   }, []);
 
+  /* ================= LOAD BARANG (AUTO) ================= */
   const loadBarang = async () => {
     setLoading(true);
 
@@ -41,9 +44,9 @@ export default function TabBarang() {
       stok_gudang!inner (
         id,
         stok,
-        gudang:gudang_id ( nama_gudang ),
+        gudang:gudang_id ( id, nama_gudang ),
         serial_number:serial_number!serial_number_stok_gudang_fk (
-          id, sn, status
+          sn, status
         )
       )
     `);
@@ -55,53 +58,83 @@ export default function TabBarang() {
     query = query.eq("stok_gudang.serial_number.status", "available");
 
     const { data, error } = await query;
+    if (!error) setDataBarang(data || []);
 
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    setDataBarang(data || []);
     setLoading(false);
   };
 
-  const exportToPDF = () => {
-    if (dataBarang.length === 0) return;
+  // AUTO LOAD
+  useEffect(() => {
+    loadBarang();
+  }, [selectedGudang]);
 
-    const doc = new jsPDF("l", "mm", "a4"); // Landscape A4
+  /* ================= EXPORT PDF ================= */
+    const exportToPDF = () => {
+      if (!dataBarang.length) return;
 
-    /* ================= HEADER DOKUMEN ================= */
-    doc.setFontSize(14);
-    doc.text("LAPORAN DATA BARANG", 14, 15);
+      const doc = new jsPDF("l", "mm", "a4");
 
-    doc.setFontSize(10);
-    doc.text(`Gudang: ${selectedGudang || "Semua Gudang"}`, 14, 22);
+    const gudangName =
+  selectedGudang
+    ? gudangList.find(
+        (g) => String(g.id) === String(selectedGudang)
+      )?.nama_gudang || "Semua Gudang"
+    : "Semua Gudang";
 
-    doc.line(14, 25, 285, 25); // garis pemisah
 
-    /* ================= DATA TABLE ================= */
-    const body: any[] = [];
 
-    dataBarang.forEach((item: any) => {
-      item.stok_gudang.forEach((sg: any) => {
-        body.push([
-          item.kode_barang || "-",
-          item.nama_barang || "-",
-          item.kategori?.nama_kategori || "-",
-          item.supplier?.nama_supplier || "-",
-          sg.gudang?.nama_gudang || "-",
-          `${sg.stok} ${item.satuan || ""}`,
-          sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-",
-          item.harga?.toLocaleString() || "-",
-        ]);
+      // ===== HEADER =====
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("LAPORAN DATA BARANG", 14, 15);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Gudang : ${gudangName}`, 14, 22);
+      doc.text(
+        `Tanggal Cetak : ${new Date().toLocaleDateString("id-ID")}`,
+        14,
+        27
+      );
+      const today = new Date();
+const tanggal =
+  today.getDate().toString().padStart(2, "0") +
+  "-" +
+  (today.getMonth() + 1).toString().padStart(2, "0") +
+  "-" +
+  today.getFullYear();
+
+const safeGudangName = gudangName.replace(/[^a-z0-9]/gi, "-");
+
+const fileName = `Laporan-Data-Barang-${safeGudangName}-${tanggal}.pdf`;
+
+
+      doc.line(14, 30, 285, 30);
+
+      // ===== BODY =====
+      const body: any[] = [];
+
+      dataBarang.forEach((item: any) => {
+        item.stok_gudang.forEach((sg: any) => {
+          body.push([
+            item.kode_barang || "-",
+            item.nama_barang || "-",
+            item.kategori?.nama_kategori || "-",
+            item.supplier?.nama_supplier || "-",
+            sg.gudang?.nama_gudang || "-",
+            `${sg.stok} ${item.satuan || ""}`,
+            sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-",
+            item.harga
+              ? `Rp ${item.harga.toLocaleString("id-ID")}`
+              : "-",
+          ]);
+        });
       });
-    });
 
-    autoTable(doc, {
-      startY: 30,
-      head: [
-        [
+      autoTable(doc, {
+        startY: 34,
+        theme: "grid",
+        head: [[
           "Kode",
           "Nama Barang",
           "Kategori",
@@ -110,39 +143,54 @@ export default function TabBarang() {
           "Stok",
           "Serial Number",
           "Harga",
-        ],
-      ],
-      body,
-      theme: "grid", // tampilan tabel standar
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-        textColor: 20,
-      },
-      headStyles: {
-        fillColor: false, // ⛔ tanpa background
-        textColor: 20,
-        fontStyle: "bold",
-        lineWidth: 0.3,
-      },
-      bodyStyles: {
-        lineWidth: 0.2,
-      },
-    });
+        ]],
+        body,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          valign: "top",
+        },
+        headStyles: {
+          fillColor: [245, 245, 245],
+          textColor: 20,
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          6: { cellWidth: 55 }, // SN
+          7: { cellWidth: 35 },
+        },
+        didDrawPage: () => {
+          const page = doc.getNumberOfPages();
+          doc.setFontSize(9);
+          doc.text(
+            `Halaman ${page}`,
+            doc.internal.pageSize.getWidth() - 20,
+            doc.internal.pageSize.getHeight() - 10
+          );
+        },
+      });
 
-    /* ================= PREVIEW PDF (TIDAK AUTO SAVE) ================= */
-    const pdfBlob = doc.output("bloburl");
-    window.open(pdfBlob, "_blank");
-  };
+     const blob = doc.output("blob");
+const url = URL.createObjectURL(blob);
 
+const a = document.createElement("a");
+a.href = url;
+a.download = fileName;
+a.target = "_blank";
+a.click();
+
+URL.revokeObjectURL(url);
+
+    };
+
+  /* ================= UI ================= */
   return (
     <>
-      {/* FILTER */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="mb-6 flex items-center justify-end gap-4">
         <select
           value={selectedGudang}
           onChange={(e) => setSelectedGudang(e.target.value)}
-          className="rounded-xl border px-4 py-2 dark:bg-gray-900 dark:border-white/20 dark:text-white">
+          className="rounded-md border px-4 py-2 text-sm dark:bg-gray-900 dark:border-white/20 dark:text-white">
           <option value="">Semua Gudang</option>
           {gudangList.map((g) => (
             <option key={g.id} value={g.id}>
@@ -151,104 +199,68 @@ export default function TabBarang() {
           ))}
         </select>
 
-        <Button onClick={loadBarang}>
-          {loading ? "Loading..." : "Load Data"}
-        </Button>
-
         <Button
           onClick={exportToPDF}
-          disabled={dataBarang.length === 0}
-          className="bg-red-600 text-white">
+          disabled={!dataBarang.length}
+          className="bg-red-600 text-white py-1 hover:bg-red-700 flex items-center">
+            <PrinterIcon className="h-6 w-6 mr-2" />
           Export PDF
         </Button>
+
+        {loading && (
+          <span className="text-sm text-gray-500">Memuat data…</span>
+        )}
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto rounded-xl ">
+      <div className="overflow-x-auto rounded-xl">
         <Table>
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+        <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
-              <TableCell
-                isHeader
+              {[
+                "Kode",
+                "Nama",
+                "Kategori",
+                "Supplier",
+                "Gudang",
+                "Stok",
+                "SN",
+                "Harga",
+              ].map((h) => (
+                <TableCell key={h}   isHeader
                 className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Kode
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Nama
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Kategori
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Supplier
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Gudang
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Stok
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                SN
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
-                Harga
-              </TableCell>
+                  {h}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHeader>
 
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {dataBarang.length === 0 && (
+           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            {!loading && !dataBarang.length && (
               <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="text-center py-6 text-gray-500">
-                  Belum ada data
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  Tidak ada data
                 </TableCell>
               </TableRow>
             )}
 
             {dataBarang.map((item: any) =>
               item.stok_gudang.map((sg: any) => (
-                <TableRow key={`${item.id}-${sg.id}`} className="border-t">
-                  <TableCell className="py-6 text-center text-gray-500 dark:text-white/80">
-                    {item.kode_barang || "-"}
-                  </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {item.nama_barang}
-                  </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {item.kategori?.nama_kategori || "-"}
-                  </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {item.supplier?.nama_supplier || "-"}
-                  </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {sg.gudang?.nama_gudang}
-                  </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
+                <TableRow key={`${item.id}-${sg.id}`}>
+                  <TableCell className="px-4 py-3 dark:text-white/80">{item.kode_barang}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">{item.nama_barang}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">{item.kategori?.nama_kategori}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">{item.supplier?.nama_supplier}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">{sg.gudang?.nama_gudang}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
                     {sg.stok} {item.satuan}
                   </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {sg.serial_number?.map((sn: any) => sn.sn).join(", ") ||
-                      "-"}
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-"}
                   </TableCell>
-                  <TableCell className="py-6  text-gray-500 dark:text-white/80">
-                    {item.harga?.toLocaleString()}
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {item.harga
+                      ? `Rp ${item.harga.toLocaleString("id-ID")}`
+                      : "-"}
                   </TableCell>
                 </TableRow>
               ))

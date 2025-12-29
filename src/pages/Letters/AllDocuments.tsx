@@ -7,6 +7,7 @@ import ExportTabs from "./export/components/ExportTabs";
 import TabBarang from "./export//components/TabBarang";
 import { TabType } from "./export/types";
 import TabBarangMasuk from "./export/components/TabBarangMasuk";
+import TabBarangKeluar from "./export/components/TabBarangKeluar";
 
 export default function AllDocuments() {
   const [activeTab, setActiveTab] = useState<TabType>("barang");
@@ -21,12 +22,8 @@ export default function AllDocuments() {
 
         {activeTab === "barang" && <TabBarang />}
         {activeTab === "masuk" && <TabBarangMasuk />}
+        {activeTab === "keluar" && <TabBarangKeluar />}
 
-        {activeTab === "keluar" && (
-          <div className="text-center py-16 text-gray-400">
-            Modul ini akan segera tersedia
-          </div>
-        )}
       </div>
     </div>
   );

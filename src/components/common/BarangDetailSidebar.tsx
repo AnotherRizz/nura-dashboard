@@ -85,25 +85,23 @@ export default function BarangDetailSidebar({
                     <p className="text-sm text-gray-500 mb-1">Serial Number</p>
                     <div className="flex flex-wrap gap-2">
                       {barang.serial_numbers.map((sn: any) => {
-  const isAvailable = sn.status === "available";
+                        const isAvailable = sn.status === "available";
 
-  return (
-    <span
-      key={sn.id}
-      className={`
+                        return (
+                          <span
+                            key={sn.id}
+                            className={`
         px-2 py-1 text-xs rounded-full
         ${
           isAvailable
             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
             : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
         }
-      `}
-    >
-      {sn.sn}
-    </span>
-  );
-})}
-
+      `}>
+                            {sn.sn} 
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -114,9 +112,9 @@ export default function BarangDetailSidebar({
                     barang.harga
                       ? barang.harga.toLocaleString("id-ID", {
                           style: "currency",
-                      currency: "IDR",
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
+                          currency: "IDR",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
                         })
                       : "-"
                   }
