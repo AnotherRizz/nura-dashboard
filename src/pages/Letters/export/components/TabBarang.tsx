@@ -69,72 +69,66 @@ export default function TabBarang() {
   }, [selectedGudang]);
 
   /* ================= EXPORT PDF ================= */
-    const exportToPDF = () => {
-      if (!dataBarang.length) return;
+  const exportToPDF = () => {
+    if (!dataBarang.length) return;
 
-      const doc = new jsPDF("l", "mm", "a4");
+    const doc = new jsPDF("l", "mm", "a4");
 
-    const gudangName =
-  selectedGudang
-    ? gudangList.find(
-        (g) => String(g.id) === String(selectedGudang)
-      )?.nama_gudang || "Semua Gudang"
-    : "Semua Gudang";
+    const gudangName = selectedGudang
+      ? gudangList.find((g) => String(g.id) === String(selectedGudang))
+          ?.nama_gudang || "Semua Gudang"
+      : "Semua Gudang";
 
+    // ===== HEADER =====
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("LAPORAN DATA BARANG", 14, 15);
 
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gudang : ${gudangName}`, 14, 22);
+    doc.text(
+      `Tanggal Cetak : ${new Date().toLocaleDateString("id-ID")}`,
+      14,
+      27
+    );
+    const today = new Date();
+    const tanggal =
+      today.getDate().toString().padStart(2, "0") +
+      "-" +
+      (today.getMonth() + 1).toString().padStart(2, "0") +
+      "-" +
+      today.getFullYear();
 
-      // ===== HEADER =====
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("LAPORAN DATA BARANG", 14, 15);
+    const safeGudangName = gudangName.replace(/[^a-z0-9]/gi, "-");
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Gudang : ${gudangName}`, 14, 22);
-      doc.text(
-        `Tanggal Cetak : ${new Date().toLocaleDateString("id-ID")}`,
-        14,
-        27
-      );
-      const today = new Date();
-const tanggal =
-  today.getDate().toString().padStart(2, "0") +
-  "-" +
-  (today.getMonth() + 1).toString().padStart(2, "0") +
-  "-" +
-  today.getFullYear();
+    const fileName = `Laporan-Data-Barang-${safeGudangName}-${tanggal}.pdf`;
 
-const safeGudangName = gudangName.replace(/[^a-z0-9]/gi, "-");
+    doc.line(14, 30, 285, 30);
 
-const fileName = `Laporan-Data-Barang-${safeGudangName}-${tanggal}.pdf`;
+    // ===== BODY =====
+    const body: any[] = [];
 
-
-      doc.line(14, 30, 285, 30);
-
-      // ===== BODY =====
-      const body: any[] = [];
-
-      dataBarang.forEach((item: any) => {
-        item.stok_gudang.forEach((sg: any) => {
-          body.push([
-            item.kode_barang || "-",
-            item.nama_barang || "-",
-            item.kategori?.nama_kategori || "-",
-            item.supplier?.nama_supplier || "-",
-            sg.gudang?.nama_gudang || "-",
-            `${sg.stok} ${item.satuan || ""}`,
-            sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-",
-            item.harga
-              ? `Rp ${item.harga.toLocaleString("id-ID")}`
-              : "-",
-          ]);
-        });
+    dataBarang.forEach((item: any) => {
+      item.stok_gudang.forEach((sg: any) => {
+        body.push([
+          item.kode_barang || "-",
+          item.nama_barang || "-",
+          item.kategori?.nama_kategori || "-",
+          item.supplier?.nama_supplier || "-",
+          sg.gudang?.nama_gudang || "-",
+          `${sg.stok} ${item.satuan || ""}`,
+          sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-",
+          item.harga ? `Rp ${item.harga.toLocaleString("id-ID")}` : "-",
+        ]);
       });
+    });
 
-      autoTable(doc, {
-        startY: 34,
-        theme: "grid",
-        head: [[
+    autoTable(doc, {
+      startY: 34,
+      theme: "grid",
+      head: [
+        [
           "Kode",
           "Nama Barang",
           "Kategori",
@@ -143,78 +137,96 @@ const fileName = `Laporan-Data-Barang-${safeGudangName}-${tanggal}.pdf`;
           "Stok",
           "Serial Number",
           "Harga",
-        ]],
-        body,
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
-          valign: "top",
-        },
-        headStyles: {
-          fillColor: [245, 245, 245],
-          textColor: 20,
-          fontStyle: "bold",
-        },
-        columnStyles: {
-          6: { cellWidth: 55 }, // SN
-          7: { cellWidth: 35 },
-        },
-        didDrawPage: () => {
-          const page = doc.getNumberOfPages();
-          doc.setFontSize(9);
-          doc.text(
-            `Halaman ${page}`,
-            doc.internal.pageSize.getWidth() - 20,
-            doc.internal.pageSize.getHeight() - 10
-          );
-        },
-      });
+        ],
+      ],
+      body,
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        valign: "top",
+      },
+      headStyles: {
+        fillColor: [245, 245, 245],
+        textColor: 20,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        6: { cellWidth: 55 }, // SN
+        7: { cellWidth: 35 },
+      },
+      didDrawPage: () => {
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(9);
+        doc.text(
+          `Halaman ${page}`,
+          doc.internal.pageSize.getWidth() - 20,
+          doc.internal.pageSize.getHeight() - 10
+        );
+      },
+    });
 
-     const blob = doc.output("blob");
-const url = URL.createObjectURL(blob);
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
 
-const a = document.createElement("a");
-a.href = url;
-a.download = fileName;
-a.target = "_blank";
-a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.target = "_blank";
+    a.click();
 
-URL.revokeObjectURL(url);
-
-    };
+    URL.revokeObjectURL(url);
+  };
+  const totalData = dataBarang.reduce(
+    (total, item) => total + (item.stok_gudang?.length || 0),
+    0
+  );
 
   /* ================= UI ================= */
   return (
     <>
-      <div className="mb-6 flex items-center justify-end gap-4">
-        <select
-          value={selectedGudang}
-          onChange={(e) => setSelectedGudang(e.target.value)}
-          className="rounded-md border px-4 py-2 text-sm dark:bg-gray-900 dark:border-white/20 dark:text-white">
-          <option value="">Semua Gudang</option>
-          {gudangList.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.nama_gudang}
-            </option>
-          ))}
-        </select>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        {/* LEFT: TOTAL DATA */}
+        <div className="text- text-gray-600 dark:text-gray-400">
+          {loading ? (
+            "Memuat data..."
+          ) : (
+            <>
+              Ditemukan{" "}
+              <span className="font-bold text-red-700">
+                {totalData} 
+              </span>{" "}
+              data barang di      <span className="font-bold text-red-700">{selectedGudang ? gudangList.find((g) => String(g.id) === String(selectedGudang))?.nama_gudang : "semua gudang"}</span>
+            </>
+          )}
+        </div>
 
-        <Button
-          onClick={exportToPDF}
-          disabled={!dataBarang.length}
-          className="bg-red-600 text-white py-1 hover:bg-red-700 flex items-center">
+        {/* RIGHT: FILTER & ACTION */}
+        <div className="flex items-center gap-4">
+          <select
+            value={selectedGudang}
+            onChange={(e) => setSelectedGudang(e.target.value)}
+            className="rounded-md border px-4 py-2 text-sm dark:bg-gray-900 dark:border-white/20 dark:text-white">
+            <option value="">Semua Gudang</option>
+            {gudangList.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.nama_gudang}
+              </option>
+            ))}
+          </select>
+
+          <Button
+            onClick={exportToPDF}
+            disabled={!totalData}
+            className="bg-red-600 text-white py-1 hover:bg-red-700 flex items-center">
             <PrinterIcon className="h-6 w-6 mr-2" />
-          Export PDF
-        </Button>
-
-        {loading && (
-          <span className="text-sm text-gray-500">Memuat data…</span>
-        )}
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl">
         <Table>
-        <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               {[
                 "Kode",
@@ -226,18 +238,22 @@ URL.revokeObjectURL(url);
                 "SN",
                 "Harga",
               ].map((h) => (
-                <TableCell key={h}   isHeader
-                className="px-5 py-4 text-start dark:text-white sm:px-6">
+                <TableCell
+                  key={h}
+                  isHeader
+                  className="px-5 py-4 text-start dark:text-white sm:px-6">
                   {h}
                 </TableCell>
               ))}
             </TableRow>
           </TableHeader>
 
-           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {!loading && !dataBarang.length && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell
+                  colSpan={8}
+                  className="text-center py-8 text-gray-500">
                   Tidak ada data
                 </TableCell>
               </TableRow>
@@ -246,16 +262,27 @@ URL.revokeObjectURL(url);
             {dataBarang.map((item: any) =>
               item.stok_gudang.map((sg: any) => (
                 <TableRow key={`${item.id}-${sg.id}`}>
-                  <TableCell className="px-4 py-3 dark:text-white/80">{item.kode_barang}</TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">{item.nama_barang}</TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">{item.kategori?.nama_kategori}</TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">{item.supplier?.nama_supplier}</TableCell>
-                  <TableCell className="px-4 py-3 dark:text-white/80">{sg.gudang?.nama_gudang}</TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {item.kode_barang}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {item.nama_barang}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {item.kategori?.nama_kategori}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {item.supplier?.nama_supplier}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 dark:text-white/80">
+                    {sg.gudang?.nama_gudang}
+                  </TableCell>
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {sg.stok} {item.satuan}
                   </TableCell>
                   <TableCell className="px-4 py-3 dark:text-white/80">
-                    {sg.serial_number?.map((sn: any) => sn.sn).join(", ") || "-"}
+                    {sg.serial_number?.map((sn: any) => sn.sn).join(", ") ||
+                      "-"}
                   </TableCell>
                   <TableCell className="px-4 py-3 dark:text-white/80">
                     {item.harga
